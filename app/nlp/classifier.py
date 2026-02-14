@@ -27,7 +27,11 @@ SEVERITY_MAP: Dict[str, float] = {
     "Wrong Item": 0.6,
     "Customer Preference": 0.3,
     "Other": 0.2,
+    "Uncertain": 0.1,
 }
+
+# Minimum confidence threshold
+MIN_CONFIDENCE_THRESHOLD = 0.4
 
 # Valid categories
 VALID_CATEGORIES = list(SEVERITY_MAP.keys())
@@ -189,6 +193,15 @@ class NLPClassifier:
         # Get confidence scores
         proba = self.model.predict_proba(X)[0]
         confidence = float(np.max(proba))
+        
+        # Check confidence threshold
+        if confidence < MIN_CONFIDENCE_THRESHOLD:
+            return {
+                "is_spam": False,
+                "reason_category": "Uncertain",
+                "severity_score": SEVERITY_MAP.get("Uncertain", 0.1),
+                "confidence": confidence
+            }
         
         # Get severity
         severity = SEVERITY_MAP.get(category, 0.2)
