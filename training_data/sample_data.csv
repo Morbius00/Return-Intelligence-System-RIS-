@@ -1,0 +1,76 @@
+return_reason,category
+Product arrived broken and damaged,Product Quality Issue
+Item was shattered in the box,Product Quality Issue
+Quality is very poor not as expected,Product Quality Issue
+Product has manufacturing defect,Product Quality Issue
+Material quality is substandard,Product Quality Issue
+Item is broken completely unusable,Product Quality Issue
+Product stopped working after 2 days,Product Quality Issue
+Very poor quality not worth the price,Product Quality Issue
+Item has scratches and dents,Product Quality Issue
+Product doesn't work properly,Product Quality Issue
+Defective piece received,Product Quality Issue
+Build quality is terrible,Product Quality Issue
+Item looks cheap and poorly made,Product Quality Issue
+Product broke on first use,Product Quality Issue
+Quality control issues evident,Product Quality Issue
+Packaging was torn and open,Packaging Issue
+Box was damaged in transit,Packaging Issue
+Packaging was not secure,Packaging Issue
+Item was poorly packaged,Packaging Issue
+Package arrived crushed,Packaging Issue
+Packaging was ripped open,Packaging Issue
+No proper packaging protection,Packaging Issue
+Package was badly damaged,Packaging Issue
+Broken packaging damaged item inside,Packaging Issue
+Package arrived in terrible condition,Packaging Issue
+Product expiry date has passed,Expiry Issue
+Item is already expired,Expiry Issue
+Received expired product,Expiry Issue
+Expiry date is too close,Expiry Issue
+Product expired last month,Expiry Issue
+Expiration date was not visible,Expiry Issue
+Item will expire in 2 days,Expiry Issue
+Past expiration date,Expiry Issue
+Shelf life already over,Expiry Issue
+Product has expired,Expiry Issue
+Wrong item sent completely different,Wrong Item
+Received wrong product,Wrong Item
+This is not what I ordered,Wrong Item
+Different item than what I purchased,Wrong Item
+Wrong color sent,Wrong Item
+Wrong size delivered,Wrong Item
+Incorrect product in the box,Wrong Item
+Order mismatch wrong item,Wrong Item
+Sent different variant,Wrong Item
+Got someone else's order,Wrong Item
+Product doesn't match description,Wrong Item
+Wrong model number,Wrong Item
+Color is different from picture,Wrong Item
+Size is wrong not as ordered,Wrong Item
+Variant mismatch,Wrong Item
+Changed my mind don't need it,Customer Preference
+Don't like the product after all,Customer Preference
+Not what I expected,Customer Preference
+Decided to cancel my order,Customer Preference
+Don't want it anymore,Customer Preference
+Found better option elsewhere,Customer Preference
+Product doesn't fit my needs,Customer Preference
+Changed preference,Customer Preference
+Ordered by mistake,Customer Preference
+Impulse purchase regret,Customer Preference
+Don't need this anymore,Customer Preference
+Realized I already have similar item,Customer Preference
+Changed plans don't need it,Customer Preference
+Personal reasons,Customer Preference
+Just don't want it,Customer Preference
+Delivery took too long,Other
+Late delivery,Other
+Never received the item,Other
+Item is too expensive,Other
+Found cheaper elsewhere,Other
+Duplicate order,Other
+Ordered wrong quantity,Other
+Technical issues with ordering,Other
+Address change needed,Other
+Payment issues,Other
