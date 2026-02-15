@@ -14,8 +14,13 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 import uvicorn
 import pandas as pd
+from dotenv import load_dotenv
 
 from app.nlp import NLPClassifier, is_spam, preprocess_text
+from app.services.sheets_service import GoogleSheetsService
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +52,9 @@ VECTORIZER_PATH = MODEL_DIR / "tfidf.pkl"
 
 # Global classifier instance
 classifier: Optional[NLPClassifier] = None
+
+# Global Google Sheets service instance
+sheets_service: Optional[GoogleSheetsService] = None
 
 
 # Pydantic models for API
@@ -124,11 +132,55 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class GoogleSheetsUpdateRequest(BaseModel):
+    """Request model for updating Google Sheets with predictions."""
+    spreadsheet_id: str = Field(..., description="Google Sheets spreadsheet ID")
+    worksheet_name: Optional[str] = Field(None, description="Worksheet name (default: first sheet)")
+    data: List[Dict[str, str]] = Field(..., description="List of data rows with 'reason' field")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "spreadsheet_id": "1ABC123xyz...",
+                "worksheet_name": "Returns",
+                "data": [
+                    {"order_id": "ORD001", "reason": "item arrived broken"},
+                    {"order_id": "ORD002", "reason": "wrong size"}
+                ]
+            }
+        }
+
+
+class GoogleSheetsUpdateResponse(BaseModel):
+    """Response model for Google Sheets update."""
+    success: bool
+    rows_processed: int
+    message: str
+    spreadsheet_url: Optional[str] = None
+
+
+class GoogleSheetsProcessRequest(BaseModel):
+    """Request model for processing existing Google Sheets data."""
+    spreadsheet_id: str = Field(..., description="Google Sheets spreadsheet ID")
+    worksheet_name: Optional[str] = Field(None, description="Worksheet name (default: first sheet)")
+    reason_column: str = Field("reason", description="Name of column containing return reasons")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "spreadsheet_id": "1ABC123xyz...",
+                "worksheet_name": "Returns",
+                "reason_column": "reason"
+            }
+        }
+
+
 @app.on_event("startup")
 async def startup_event():
-    """Load model on application startup."""
-    global classifier
+    """Load model and initialize services on application startup."""
+    global classifier, sheets_service
     
+    # Load NLP model
     try:
         if MODEL_PATH.exists() and VECTORIZER_PATH.exists():
             logger.info("Loading trained model...")
@@ -144,6 +196,19 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         classifier = None
+    
+    # Initialize Google Sheets service
+    try:
+        credentials_path = os.getenv("GOOGLE_CREDENTIALS_PATH")
+        if credentials_path and os.path.exists(credentials_path):
+            sheets_service = GoogleSheetsService(credentials_path)
+            logger.info("Google Sheets service initialized successfully")
+        else:
+            logger.warning("Google Sheets credentials not found. Sheets integration will be unavailable.")
+            sheets_service = None
+    except Exception as e:
+        logger.error(f"Failed to initialize Google Sheets service: {e}")
+        sheets_service = None
 
 
 @app.get("/", response_model=Dict[str, str])
@@ -357,6 +422,266 @@ async def get_categories():
         "categories": list(SEVERITY_MAP.keys()),
         "severity_mapping": SEVERITY_MAP
     }
+
+
+@app.post("/sheets/process", response_model=GoogleSheetsUpdateResponse)
+async def process_existing_google_sheet(request: GoogleSheetsProcessRequest):
+    """
+    Process an existing Google Sheet by reading it, classifying the reason column,
+    and adding new columns with classification results.
+    
+    This endpoint:
+    1. Reads the existing sheet data
+    2. Finds the specified reason column
+    3. Runs NLP classification on each reason
+    4. Adds new columns: return_category, return_severity, return_confidence, is_spam
+    5. Writes results back to the sheet
+    
+    Args:
+        request: GoogleSheetsProcessRequest with spreadsheet info
+        
+    Returns:
+        GoogleSheetsUpdateResponse with operation results
+    """
+    if classifier is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model not loaded. Please train the model first."
+        )
+    
+    if sheets_service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sheets service not configured. Please set GOOGLE_CREDENTIALS_PATH environment variable."
+        )
+    
+    try:
+        # Read existing sheet data
+        logger.info(f"Reading sheet: {request.spreadsheet_id}")
+        df = sheets_service.read_sheet_to_dataframe(
+            spreadsheet_id=request.spreadsheet_id,
+            worksheet_name=request.worksheet_name
+        )
+        
+        if df.empty:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Sheet is empty or could not be read"
+            )
+        
+        # Check if reason column exists
+        if request.reason_column not in df.columns:
+            available_columns = ", ".join(df.columns.tolist())
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Column '{request.reason_column}' not found. Available columns: {available_columns}"
+            )
+        
+        # Extract reasons and run batch prediction
+        reasons = df[request.reason_column].fillna("").astype(str).tolist()
+        logger.info(f"Processing {len(reasons)} reasons...")
+        results = classifier.predict_batch(reasons)
+        
+        # Prepare column updates
+        updates = {
+            'return_category': [res['reason_category'] for res in results],
+            'return_severity': [round(res['severity_score'], 2) for res in results],
+            'return_confidence': [f"{round(res.get('confidence', 0) * 100, 1)}%" for res in results],
+            'is_spam': ['Yes' if res['is_spam'] else 'No' for res in results],
+            'processed_at': [pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')] * len(results)
+        }
+        
+        # Update columns in sheet
+        logger.info(f"Writing classification results to sheet...")
+        sheets_service.update_columns(
+            spreadsheet_id=request.spreadsheet_id,
+            updates=updates,
+            worksheet_name=request.worksheet_name,
+            start_row=2  # Start from row 2 (after header)
+        )
+        
+        spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{request.spreadsheet_id}"
+        
+        return GoogleSheetsUpdateResponse(
+            success=True,
+            rows_processed=len(df),
+            message=f"Successfully processed {len(df)} rows and added classification columns to Google Sheets",
+            spreadsheet_url=spreadsheet_url
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google Sheets processing error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process Google Sheets: {str(e)}"
+        )
+
+
+@app.post("/sheets/update", response_model=GoogleSheetsUpdateResponse)
+async def update_google_sheets(request: GoogleSheetsUpdateRequest):
+    """
+    Process data and update Google Sheets with predictions in real-time.
+    
+    This endpoint:
+    1. Takes data with 'reason' field
+    2. Runs NLP classification on each reason
+    3. Writes results back to Google Sheets
+    
+    Args:
+        request: GoogleSheetsUpdateRequest with spreadsheet info and data
+        
+    Returns:
+        GoogleSheetsUpdateResponse with operation results
+    """
+    if classifier is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model not loaded. Please train the model first."
+        )
+    
+    if sheets_service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sheets service not configured. Please set GOOGLE_CREDENTIALS_PATH environment variable."
+        )
+    
+    try:
+        # Extract reasons from data
+        reasons = [item.get('reason', '') for item in request.data]
+        
+        # Run batch prediction
+        logger.info(f"Processing {len(reasons)} reasons...")
+        results = classifier.predict_batch(reasons)
+        
+        # Prepare data for Google Sheets update
+        updates = []
+        for i, (data_item, result) in enumerate(zip(request.data, results)):
+            row_data = {
+                **data_item,  # Include original data
+                'Category': result['reason_category'],
+                'Severity': round(result['severity_score'], 2),
+                'Confidence': f"{round(result.get('confidence', 0) * 100, 1)}%",
+                'Is_Spam': 'Yes' if result['is_spam'] else 'No',
+                'Processed_At': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            updates.append(row_data)
+        
+        # Convert to DataFrame for easier manipulation
+        df = pd.DataFrame(updates)
+        
+        # Write to Google Sheets
+        logger.info(f"Writing {len(df)} rows to Google Sheets...")
+        sheets_service.write_dataframe_to_sheet(
+            df=df,
+            spreadsheet_id=request.spreadsheet_id,
+            worksheet_name=request.worksheet_name,
+            start_cell="A1"
+        )
+        
+        spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{request.spreadsheet_id}"
+        
+        return GoogleSheetsUpdateResponse(
+            success=True,
+            rows_processed=len(df),
+            message=f"Successfully processed and updated {len(df)} rows in Google Sheets",
+            spreadsheet_url=spreadsheet_url
+        )
+        
+    except Exception as e:
+        logger.error(f"Google Sheets update error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update Google Sheets: {str(e)}"
+        )
+
+
+@app.post("/sheets/append", response_model=GoogleSheetsUpdateResponse)
+async def append_to_google_sheets(request: GoogleSheetsUpdateRequest):
+    """
+    Process data and append predictions to existing Google Sheets data.
+    
+    Similar to /sheets/update but appends data instead of overwriting.
+    
+    Args:
+        request: GoogleSheetsUpdateRequest with spreadsheet info and data
+        
+    Returns:
+        GoogleSheetsUpdateResponse with operation results
+    """
+    if classifier is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model not loaded. Please train the model first."
+        )
+    
+    if sheets_service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sheets service not configured. Please set GOOGLE_CREDENTIALS_PATH environment variable."
+        )
+    
+    try:
+        # Extract reasons from data
+        reasons = [item.get('reason', '') for item in request.data]
+        
+        # Run batch prediction
+        logger.info(f"Processing {len(reasons)} reasons...")
+        results = classifier.predict_batch(reasons)
+        
+        # Prepare rows for appending
+        updates = []
+        for i, (data_item, result) in enumerate(zip(request.data, results)):
+            row_data = {
+                **data_item,
+                'Category': result['reason_category'],
+                'Severity': round(result['severity_score'], 2),
+                'Confidence': f"{round(result.get('confidence', 0) * 100, 1)}%",
+                'Is_Spam': 'Yes' if result['is_spam'] else 'No',
+                'Processed_At': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            updates.append(row_data)
+        
+        # Get worksheet
+        worksheet = sheets_service.get_worksheet(
+            spreadsheet_id=request.spreadsheet_id,
+            worksheet_name=request.worksheet_name
+        )
+        
+        # Get existing data to determine where to append
+        existing_data = worksheet.get_all_values()
+        next_row = len(existing_data) + 1
+        
+        # If sheet is empty, add headers
+        if next_row == 1:
+            headers = list(updates[0].keys())
+            worksheet.append_row(headers)
+            next_row = 2
+        
+        # Append rows
+        logger.info(f"Appending {len(updates)} rows to Google Sheets starting at row {next_row}...")
+        for row_data in updates:
+            # Get values in order of headers
+            headers = worksheet.row_values(1)
+            values = [row_data.get(header, '') for header in headers]
+            worksheet.append_row(values)
+        
+        spreadsheet_url = f"https://docs.google.com/spreadsheets/d/{request.spreadsheet_id}"
+        
+        return GoogleSheetsUpdateResponse(
+            success=True,
+            rows_processed=len(updates),
+            message=f"Successfully appended {len(updates)} rows to Google Sheets",
+            spreadsheet_url=spreadsheet_url
+        )
+        
+    except Exception as e:
+        logger.error(f"Google Sheets append error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to append to Google Sheets: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

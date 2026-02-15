@@ -68,3 +68,7 @@ htmlcov/
 data/
 *.csv
 !training_data/sample_data.csv
+
+# GCP Service Account
+credentials/
+*.json

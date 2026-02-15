@@ -13,10 +13,11 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #ffffff;
-            color: #000000;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            color: #1e293b;
             line-height: 1.6;
             padding: 20px;
+            min-height: 100vh;
         }
 
         .container {
@@ -26,46 +27,75 @@
 
         header {
             text-align: center;
-            padding: 40px 0;
-            border-bottom: 3px solid #CBFF63;
-            margin-bottom: 30px;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 4px solid #CBFF63;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(100, 116, 139, 0.1);
+            border-radius: 0 0 20px 20px;
         }
 
         h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            color: #0f172a;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(100, 116, 139, 0.1);
         }
 
         .subtitle {
-            font-size: 1.2em;
-            color: #000000;
+            font-size: 1.3em;
+            color: #475569;
+            font-weight: 500;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 5px 15px;
+            padding: 8px 20px;
             background-color: #CBFF63;
-            color: #000000;
-            border-radius: 20px;
-            font-weight: bold;
-            margin-top: 15px;
+            color: #0f172a;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(203, 255, 99, 0.3);
+            border: 2px solid #CBFF63;
+            transition: all 0.3s ease;
         }
 
         .section {
             background-color: #ffffff;
-            border: 2px solid #CBFF63;
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
+            border: 2px solid #e2e8f0;
+            border-left: 5px solid #CBFF63;
+            border-radius: 15px;
+            padding: 35px;
+            margin-bottom: 35px;
+            box-shadow: 0 4px 20px rgba(100, 116, 139, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 8px 30px rgba(100, 116, 139, 0.15);
+            transform: translateY(-2px);
         }
 
         h2 {
-            color: #000000;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            border-bottom: 2px solid #CBFF63;
-            padding-bottom: 10px;
+            color: #0f172a;
+            margin-bottom: 25px;
+            font-size: 1.9em;
+            font-weight: 700;
+            border-bottom: 3px solid #CBFF63;
+            padding-bottom: 12px;
+            position: relative;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 80px;
+            height: 3px;
+            background: #64748b;
         }
 
         .categories-grid {
@@ -77,27 +107,30 @@
 
         .category-card {
             background-color: #ffffff;
-            border: 2px solid #CBFF63;
-            border-radius: 8px;
-            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(100, 116, 139, 0.05);
         }
 
         .category-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2);
+            box-shadow: 0 8px 25px rgba(203, 255, 99, 0.3);
+            border-color: #CBFF63;
         }
 
         .category-name {
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #000000;
-            margin-bottom: 5px;
+            font-weight: 700;
+            font-size: 1.15em;
+            color: #0f172a;
+            margin-bottom: 8px;
         }
 
         .severity {
             font-size: 0.9em;
-            color: #000000;
+            color: #475569;
+            font-weight: 500;
         }
 
         .severity-high {
@@ -119,61 +152,74 @@
         label {
             display: block;
             margin-bottom: 10px;
-            font-weight: bold;
-            color: #000000;
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.05em;
         }
 
         input[type="text"],
         textarea {
             width: 100%;
             padding: 15px;
-            background-color: #ffffff;
-            border: 2px solid #CBFF63;
-            border-radius: 5px;
-            color: #000000;
+            background-color: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            color: #1e293b;
             font-size: 1em;
             font-family: inherit;
             margin-bottom: 15px;
+            transition: all 0.3s ease;
         }
 
         input[type="text"]:focus,
         textarea:focus {
             outline: none;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            background-color: #ffffff;
+            border-color: #CBFF63;
+            box-shadow: 0 0 0 4px rgba(203, 255, 99, 0.1);
         }
 
         button {
             background-color: #CBFF63;
-            color: #000000;
+            color: #0f172a;
             padding: 15px 40px;
-            border: none;
-            border-radius: 5px;
+            border: 2px solid #CBFF63;
+            border-radius: 8px;
             font-size: 1.1em;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-right: 10px;
+            box-shadow: 0 4px 12px rgba(203, 255, 99, 0.3);
         }
 
         button:hover {
-            background-color: #99C83D;
-            transform: scale(1.05);
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            background-color: #b8e84d;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(203, 255, 99, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(203, 255, 99, 0.3);
         }
 
         button:disabled {
-            background-color: #ccc;
-            color: #666;
+            background-color: #cbd5e1;
+            color: #94a3b8;
             cursor: not-allowed;
+            border-color: #cbd5e1;
+            box-shadow: none;
         }
 
         .result-box {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #ffffff;
+            margin-top: 25px;
+            padding: 25px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border: 2px solid #CBFF63;
-            border-radius: 8px;
+            border-radius: 12px;
             display: none;
+            box-shadow: 0 4px 15px rgba(203, 255, 99, 0.15);
         }
 
         .result-box.show {
@@ -193,9 +239,9 @@
         }
 
         .result-item {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #CBFF63;
+            margin-bottom: 18px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .result-item:last-child {
@@ -205,15 +251,16 @@
         }
 
         .result-label {
-            color: #000000;
-            font-weight: bold;
+            color: #475569;
+            font-weight: 600;
             display: inline-block;
             width: 150px;
         }
 
         .result-value {
-            color: #000000;
+            color: #0f172a;
             font-size: 1.1em;
+            font-weight: 500;
         }
 
         .spam-badge {
@@ -234,13 +281,15 @@
         }
 
         .error-box {
-            background-color: #FFF0F0;
-            border: 2px solid #FF0000;
-            color: #FF0000;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
+            background-color: #fef2f2;
+            border: 2px solid #ef4444;
+            border-left: 5px solid #dc2626;
+            color: #991b1b;
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 20px;
             display: none;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
         }
 
         .error-box.show {
@@ -250,8 +299,9 @@
         .loading {
             display: none;
             text-align: center;
-            margin-top: 15px;
-            color: #000000;
+            margin-top: 20px;
+            color: #475569;
+            font-weight: 500;
         }
 
         .loading.show {
@@ -259,13 +309,14 @@
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
+            border: 4px solid #e2e8f0;
             border-top: 4px solid #CBFF63;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 0 auto 10px;
+            box-shadow: 0 2px 8px rgba(100, 116, 139, 0.1);
         }
 
         @keyframes spin {
@@ -274,51 +325,60 @@
         }
 
         .api-info {
-            background-color: #f9f9f9;
-            border-left: 4px solid #CBFF63;
-            padding: 15px;
+            background-color: #f8fafc;
+            border-left: 5px solid #CBFF63;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
             margin-top: 20px;
-            border-radius: 5px;
-            color: #000000;
+            border-radius: 10px;
+            color: #475569;
+            box-shadow: 0 2px 8px rgba(100, 116, 139, 0.05);
         }
 
         .api-endpoint {
             font-family: 'Courier New', monospace;
-            color: #000000;
-            background-color: #eeeeee;
-            padding: 5px 10px;
-            border-radius: 3px;
+            color: #0f172a;
+            background-color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px;
             display: inline-block;
             margin-top: 5px;
+            font-weight: 600;
+            border: 1px solid #cbd5e1;
         }
 
         .confidence-bar {
             width: 100%;
-            height: 25px;
-            background-color: #eeeeee;
-            border: 2px solid #CBFF63;
-            border-radius: 5px;
+            height: 28px;
+            background-color: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
             overflow: hidden;
-            margin-top: 5px;
+            margin-top: 8px;
+            box-shadow: inset 0 2px 4px rgba(100, 116, 139, 0.1);
         }
 
         .confidence-fill {
             height: 100%;
-            background: linear-gradient(90deg, #CBFF63, #7FFF00);
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #CBFF63 0%, #a8e84d 50%, #7FFF00 100%);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #000000;
-            font-weight: bold;
+            color: #0f172a;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(203, 255, 99, 0.3);
         }
 
         footer {
             text-align: center;
-            padding: 30px 0;
-            border-top: 3px solid #CBFF63;
-            margin-top: 50px;
-            color: #000000;
+            padding: 40px 20px;
+            border-top: 4px solid #CBFF63;
+            margin-top: 60px;
+            color: #475569;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(100, 116, 139, 0.1);
         }
 
         .batch-input {
@@ -358,32 +418,32 @@
                 <div class="category-card">
                     <div class="category-name">Product Quality Issue</div>
                     <div class="severity severity-high">⚠️ Severity: 0.9 (High)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Defects, poor quality, broken items</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Defects, poor quality, broken items</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Expiry Issue</div>
                     <div class="severity severity-high">⚠️ Severity: 0.9 (High)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Expired products</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Expired products</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Packaging Issue</div>
                     <div class="severity severity-medium">⚠️ Severity: 0.6 (Medium)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Damaged or poor packaging</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Damaged or poor packaging</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Wrong Item</div>
                     <div class="severity severity-medium">⚠️ Severity: 0.6 (Medium)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Incorrect product sent</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Incorrect product sent</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Customer Preference</div>
                     <div class="severity severity-low">⚠️ Severity: 0.3 (Low)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Changed mind, personal reasons</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Changed mind, personal reasons</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Other</div>
                     <div class="severity severity-low">⚠️ Severity: 0.2 (Low)</div>
-                    <p style="color: #000000; font-size: 0.85em; margin-top: 5px;">Miscellaneous reasons</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Miscellaneous reasons</p>
                 </div>
             </div>
         </div>
@@ -412,7 +472,7 @@
             <div class="error-box" id="singleError"></div>
 
             <div class="result-box" id="singleResult">
-                <h3 style="color: #000000; margin-bottom: 15px;">📋 Prediction Result</h3>
+                <h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">📋 Prediction Result</h3>
                 <div class="result-item">
                     <span class="result-label">Category:</span>
                     <span class="result-value" id="resultCategory">-</span>
@@ -461,6 +521,77 @@
             <div class="result-box batch-results" id="batchResults"></div>
         </div>
 
+        <!-- Process Existing Google Sheet Section -->
+        <div class="section">
+            <h2>📊 Process Existing Google Sheet</h2>
+            <p style="margin-bottom: 20px;"><strong>Perfect for sheets that already have data!</strong> Just provide your spreadsheet URL - the system will automatically read your existing data, find the "reason" column, classify all entries, and add new columns with results.</p>
+            
+            <div class="api-info" style="margin-bottom: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left-color: #3b82f6;">
+                <strong>✨ Easy Mode:</strong> This is the simplest way to process your existing Google Sheets. No need to format JSON data - just paste your sheet URL!
+            </div>
+
+            <form class="test-form" id="processExistingSheetForm">
+                <label for="processSpreadsheetUrl">Google Sheets URL or Spreadsheet ID:</label>
+                <input 
+                    type="text" 
+                    id="processSpreadsheetUrl" 
+                    name="processSpreadsheetUrl" 
+                    placeholder="https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg/edit"
+                    required
+                >
+
+                <label for="processWorksheetName">Worksheet Name:</label>
+                <input 
+                    type="text" 
+                    id="processWorksheetName" 
+                    name="processWorksheetName" 
+                    placeholder="Sheet1"
+                    required
+                >
+
+                <label for="reasonColumnName">Reason Column Name:</label>
+                <input 
+                    type="text" 
+                    id="reasonColumnName" 
+                    name="reasonColumnName" 
+                    value="reason"
+                    placeholder="reason"
+                    required
+                >
+                <p style="font-size: 0.85em; color: #64748b; margin: -10px 0 15px 0;">
+                    The name of the column in your sheet that contains the return reasons
+                </p>
+
+                <button type="submit">🚀 Process Existing Sheet</button>
+                <button type="button" onclick="fillProcessSheetExample()">Try Example</button>
+            </form>
+
+            <div class="loading" id="processSheetLoading">
+                <div class="spinner"></div>
+                <p>Reading and processing your Google Sheet... This may take a moment.</p>
+            </div>
+
+            <div class="error-box" id="processSheetError"></div>
+
+            <div class="result-box" id="processSheetResult">
+                <h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">✅ Sheet Processed Successfully</h3>
+                <div class="result-item">
+                    <span class="result-label">Rows Processed:</span>
+                    <span class="result-value" id="processSheetRowCount">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Message:</span>
+                    <span class="result-value" id="processSheetMessage">-</span>
+                </div>
+                <div class="result-item" style="border-bottom: none;">
+                    <p style="color: #64748b; margin-bottom: 10px;">New columns added: <strong>return_category, return_severity, return_confidence, is_spam, processed_at</strong></p>
+                    <button type="button" id="viewProcessedSheetBtn" style="background-color: #64748b; color: #ffffff; border-color: #64748b; margin-top: 10px;">
+                        📊 Open Google Sheet
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Sheet Upload Section -->
         <div class="section">
             <h2>📁 Sheet Analysis (Upload Excel/CSV)</h2>
@@ -487,15 +618,15 @@
             <div class="error-box" id="uploadError"></div>
 
             <div class="result-box" id="uploadResult">
-                <h3 style="color: #000000; margin-bottom: 15px;">✅ Analysis Complete</h3>
+                <h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">✅ Analysis Complete</h3>
                 <p id="uploadStats" style="margin-bottom: 15px;">-</p>
-                <button type="button" id="downloadBtn" style="background-color: #000; color: #CBFF63;">📥 Download Processed Sheet</button>
+                <button type="button" id="downloadBtn" style="background-color: #64748b; color: #ffffff; border-color: #64748b;">📥 Download Processed Sheet</button>
             </div>
         </div>
 
         <footer>
-            <p>Built with ❤️ using Classical NLP + Machine Learning</p>
-            <p style="font-size: 0.9em; margin-top: 10px;">FastAPI • NLTK • Scikit-learn • TF-IDF • Logistic Regression</p>
+            <p style="font-weight: 600; color: #0f172a;">Built with ❤️ using Classical NLP + Machine Learning</p>
+            <p style="font-size: 0.9em; margin-top: 10px; color: #64748b;">FastAPI • NLTK • Scikit-learn • TF-IDF • Logistic Regression</p>
         </footer>
     </div>
 
@@ -512,10 +643,11 @@
                 if (data.status === 'healthy' && data.model_loaded) {
                     statusBadge.textContent = '✅ Server Online';
                     statusBadge.style.backgroundColor = '#CBFF63';
+                    statusBadge.style.color = '#0f172a';
                 } else {
                     statusBadge.textContent = '⚠️ Model Not Loaded';
-                    statusBadge.style.backgroundColor = '#FFFF00';
-                    statusBadge.style.color = '#000';
+                    statusBadge.style.backgroundColor = '#fbbf24';
+                    statusBadge.style.color = '#78350f';
                 }
             } catch (error) {
                 statusBadge.textContent = '❌ Server Offline';
@@ -613,7 +745,7 @@
                 const data = await response.json();
                 
                 // Display results
-                let html = `<h3 style="color: #000000; margin-bottom: 15px;">📋 Batch Results (${data.total} items)</h3>`;
+                let html = `<h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">📋 Batch Results (${data.total} items)</h3>`;
                 
                 data.predictions.forEach((pred, index) => {
                     const spamClass = pred.is_spam ? 'spam-yes' : 'spam-no';
@@ -622,7 +754,7 @@
                     
                     html += `
                         <div class="result-item">
-                            <div style="color: #000000; font-weight: bold; margin-bottom: 8px;">Input ${index + 1}: "${returnReasons[index]}"</div>
+                            <div style="color: #0f172a; font-weight: 700; margin-bottom: 8px;">Input ${index + 1}: "${returnReasons[index]}"</div>
                             <div style="margin-left: 15px;">
                                 <div><span class="result-label">Category:</span> <span class="result-value">${pred.reason_category}</span></div>
                                 <div><span class="result-label">Severity:</span> <span class="result-value">${pred.severity_score.toFixed(2)}</span></div>
@@ -667,6 +799,223 @@ product is defective
 I don't like the color`;
             document.getElementById('batchReasons').value = batchExample;
         }
+
+        function fillSheetsExample() {
+            document.getElementById('spreadsheetUrl').value = 'https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg/edit';
+            document.getElementById('worksheetName').value = 'Returns';
+            const exampleData = `[
+  {"order_id": "ORD001", "customer": "Alice Johnson", "reason": "Product arrived damaged during shipping"},
+  {"order_id": "ORD002", "customer": "Bob Smith", "reason": "Received wrong color - ordered blue but got red"},
+  {"order_id": "ORD003", "customer": "Carol White", "reason": "Item too small, need larger size"},
+  {"order_id": "ORD004", "customer": "David Brown", "reason": "Quality not as expected, material feels cheap"},
+  {"order_id": "ORD005", "customer": "Emma Davis", "reason": "Product expired, expiry date already passed"}
+]`;
+            document.getElementById('sheetsData').value = exampleData;
+        }
+
+        function fillProcessSheetExample() {
+            document.getElementById('processSpreadsheetUrl').value = 'https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg/edit';
+            document.getElementById('processWorksheetName').value = 'Sheet1';
+            document.getElementById('reasonColumnName').value = 'reason';
+        }
+
+        // Helper function to extract spreadsheet ID from URL
+        function extractSpreadsheetId(input) {
+            // If it's already just an ID (no slashes or url parts), return as-is
+            if (!input.includes('/') && !input.includes('http')) {
+                return input.trim();
+            }
+            
+            // Extract ID from full URL: https://docs.google.com/spreadsheets/d/{ID}/edit
+            const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match && match[1]) {
+                return match[1];
+            }
+            
+            // If no match, return the input as-is (might already be an ID)
+            return input.trim();
+        }
+
+        // Process existing Google Sheet form handler
+        document.getElementById('processExistingSheetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const urlInput = document.getElementById('processSpreadsheetUrl').value;
+            const worksheetName = document.getElementById('processWorksheetName').value.trim();
+            const reasonColumn = document.getElementById('reasonColumnName').value.trim();
+            
+            const loading = document.getElementById('processSheetLoading');
+            const errorBox = document.getElementById('processSheetError');
+            const resultBox = document.getElementById('processSheetResult');
+            
+            // Reset UI
+            loading.classList.add('show');
+            errorBox.classList.remove('show');
+            resultBox.classList.remove('show');
+            
+            try {
+                // Extract spreadsheet ID from URL
+                const spreadsheetId = extractSpreadsheetId(urlInput);
+                
+                if (!spreadsheetId) {
+                    throw new Error('Invalid spreadsheet URL or ID');
+                }
+                
+                // Prepare request payload
+                const payload = {
+                    spreadsheet_id: spreadsheetId,
+                    worksheet_name: worksheetName || null,
+                    reason_column: reasonColumn || 'reason'
+                };
+                
+                // Make API call
+                const response = await fetch(`${API_BASE_URL}/sheets/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Display results
+                document.getElementById('processSheetRowCount').textContent = result.rows_processed;
+                document.getElementById('processSheetMessage').textContent = result.message;
+                
+                const viewBtn = document.getElementById('viewProcessedSheetBtn');
+                viewBtn.onclick = () => {
+                    window.open(result.spreadsheet_url, '_blank');
+                };
+                
+                loading.classList.remove('show');
+                resultBox.classList.add('show');
+                
+            } catch (error) {
+                loading.classList.remove('show');
+                errorBox.innerHTML = `❌ <strong>Error:</strong> ${error.message}<br><br>`;
+                
+                if (error.message.includes('not configured') || error.message.includes('credentials')) {
+                    errorBox.innerHTML += `<strong>Tip:</strong> Make sure you've set up the Google Sheets API credentials and the GOOGLE_CREDENTIALS_PATH environment variable. See <a href="GOOGLE_SHEETS_SETUP.md" style="color: #dc2626; font-weight: 700; text-decoration: underline;">setup guide</a>.`;
+                } else if (error.message.includes('Permission denied') || error.message.includes('not found')) {
+                    errorBox.innerHTML += `<strong>Tip:</strong> Make sure you've shared the Google Sheet with your service account email (found in the credentials JSON file).`;
+                } else if (error.message.includes('Column') && error.message.includes('not found')) {
+                    errorBox.innerHTML += `<strong>Tip:</strong> Check that the column name matches exactly (case-sensitive).`;
+                }
+                
+                errorBox.classList.add('show');
+            }
+        });
+
+        // Google Sheets integration form handler
+        document.getElementById('googleSheetsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const urlInput = document.getElementById('spreadsheetUrl').value;
+            const worksheetName = document.getElementById('worksheetName').value.trim();
+            const dataInput = document.getElementById('sheetsData').value;
+            const updateMode = document.querySelector('input[name="updateMode"]:checked').value;
+            
+            const loading = document.getElementById('sheetsLoading');
+            const errorBox = document.getElementById('sheetsError');
+            const resultBox = document.getElementById('sheetsResult');
+            
+            // Reset UI
+            loading.classList.add('show');
+            errorBox.classList.remove('show');
+            resultBox.classList.remove('show');
+            
+            try {
+                // Extract spreadsheet ID from URL
+                const spreadsheetId = extractSpreadsheetId(urlInput);
+                
+                if (!spreadsheetId) {
+                    throw new Error('Invalid spreadsheet URL or ID');
+                }
+                
+                // Parse JSON data
+                let data;
+                try {
+                    data = JSON.parse(dataInput);
+                } catch (e) {
+                    throw new Error('Invalid JSON format. Please check your data input.');
+                }
+                
+                // Validate data array
+                if (!Array.isArray(data)) {
+                    throw new Error('Data must be a JSON array');
+                }
+                
+                if (data.length === 0) {
+                    throw new Error('Data array cannot be empty');
+                }
+                
+                // Check if all objects have a 'reason' field
+                const missingReason = data.findIndex(item => !item.reason);
+                if (missingReason !== -1) {
+                    throw new Error(`Item at index ${missingReason} is missing the required "reason" field`);
+                }
+                
+                // Prepare request payload
+                const payload = {
+                    spreadsheet_id: spreadsheetId,
+                    data: data
+                };
+                
+                // Add worksheet name if provided
+                if (worksheetName) {
+                    payload.worksheet_name = worksheetName;
+                }
+                
+                // Determine endpoint based on update mode
+                const endpoint = updateMode === 'append' ? '/sheets/append' : '/sheets/update';
+                
+                // Make API call
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Display results
+                document.getElementById('sheetsRowCount').textContent = result.rows_processed;
+                document.getElementById('sheetsMessage').textContent = result.message;
+                
+                const viewBtn = document.getElementById('viewSheetBtn');
+                viewBtn.onclick = () => {
+                    window.open(result.spreadsheet_url, '_blank');
+                };
+                
+                loading.classList.remove('show');
+                resultBox.classList.add('show');
+                
+            } catch (error) {
+                loading.classList.remove('show');
+                errorBox.innerHTML = `❌ <strong>Error:</strong> ${error.message}<br><br>`;
+                
+                if (error.message.includes('not configured') || error.message.includes('credentials')) {
+                    errorBox.innerHTML += `<strong>Tip:</strong> Make sure you've set up the Google Sheets API credentials and the GOOGLE_CREDENTIALS_PATH environment variable. See <a href="GOOGLE_SHEETS_SETUP.md" style="color: #dc2626; font-weight: 700; text-decoration: underline;">setup guide</a>.`;
+                } else if (error.message.includes('Permission denied') || error.message.includes('not found')) {
+                    errorBox.innerHTML += `<strong>Tip:</strong> Make sure you've shared the Google Sheet with your service account email (found in the credentials JSON file).`;
+                }
+                
+                errorBox.classList.add('show');
+            }
+        });
 
         // Sheet upload form handler
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {

@@ -144,6 +144,21 @@ The API will be available at:
 
 ## 📡 API Usage
 
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | API information |
+| GET | `/health` | Health check and model status |
+| GET | `/categories` | Get all classification categories |
+| POST | `/predict` | Classify single return reason |
+| POST | `/predict/batch` | Classify multiple return reasons |
+| POST | `/predict/file` | Upload and process CSV/Excel file |
+| POST | `/preprocess` | Test text preprocessing |
+| POST | `/sheets/process` | **Process existing Google Sheet** (recommended) |
+| POST | `/sheets/update` | Create/replace sheet with custom data |
+| POST | `/sheets/append` | Append custom data to existing sheet |
+
 ### Health Check
 
 ```bash
@@ -324,6 +339,141 @@ python batch_processor.py --mode csv --csv-input input.csv --csv-output output.c
 | Item arrived broken | Product Quality Issue | 0.9 | FALSE |
 | Wrong product sent | Wrong Item | 0.6 | FALSE |
 | no reason | Other | 0.0 | TRUE |
+
+### Real-Time API Endpoints
+
+The API now includes dedicated endpoints for real-time Google Sheets updates:
+
+#### POST /sheets/process - Process Existing Sheet (Recommended ⭐)
+
+**The easiest way to process your existing Google Sheets!** Simply provide your spreadsheet ID and worksheet name. The API will:
+1. Read your existing sheet data
+2. Find the "reason" column
+3. Classify all return reasons
+4. Add new columns with results: `return_category`, `return_severity`, `return_confidence`, `is_spam`, `processed_at`
+
+**Request:**
+```json
+{
+  "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
+  "worksheet_name": "Returns",
+  "reason_column": "reason"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "rows_processed": 18,
+  "message": "Successfully processed 18 rows and added classification columns to Google Sheets",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg"
+}
+```
+
+**Your sheet before:**
+| fact_id | product | category | brand | store | city | date | reason | qty_sold | qty_returned |
+|---------|---------|----------|-------|-------|------|------|--------|----------|--------------|
+| 1 | Rice 5kg | Grocery | BrandA | Store A | Kolkata | 2025-01-01 | Damaged Product | 100 | 10 |
+| 2 | Wheat Flour | Grocery | BrandB | Store B | Kolkata | 2025-01-02 | Expired Product | 80 | 20 |
+
+**Your sheet after:**
+| ... | reason | ... | return_category | return_severity | return_confidence | is_spam | processed_at |
+|-----|--------|-----|----------------|-----------------|-------------------|---------|--------------|
+| ... | Damaged Product | ... | Product Quality Issue | 0.9 | 85.0% | No | 2025-01-15 14:30:00 |
+| ... | Expired Product | ... | Expiry Issue | 0.9 | 92.0% | No | 2025-01-15 14:30:01 |
+
+**Example using cURL:**
+```bash
+curl -X POST "http://localhost:8000/sheets/process" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
+    "worksheet_name": "Returns",
+    "reason_column": "reason"
+  }'
+```
+
+**Example using Python:**
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/sheets/process",
+    json={
+        "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
+        "worksheet_name": "Returns",
+        "reason_column": "reason"
+    }
+)
+print(response.json())
+```
+
+---
+
+#### POST /sheets/update - Create/Replace Sheet with Custom Data
+
+Processes data and writes results to Google Sheets (replaces existing content). Use this when you want to send custom formatted data.
+
+**Request:**
+```json
+{
+  "spreadsheet_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  "worksheet_name": "Returns",
+  "data": [
+    {"order_id": "ORD001", "reason": "item arrived broken"},
+    {"order_id": "ORD002", "reason": "wrong size"}
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "rows_processed": 2,
+  "message": "Successfully processed and updated 2 rows in Google Sheets",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/..."
+}
+```
+
+#### POST /sheets/append - Append to Sheet
+
+Processes data and appends results to existing sheet data.
+
+**Example using cURL:**
+```bash
+curl -X POST "http://localhost:8000/sheets/append" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "spreadsheet_id": "YOUR_SPREADSHEET_ID",
+    "worksheet_name": "Returns",
+    "data": [{"order_id": "ORD001", "reason": "item arrived broken"}]
+  }'
+```
+
+**Example using Python:**
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/sheets/update",
+    json={
+        "spreadsheet_id": "YOUR_SPREADSHEET_ID",
+        "data": [
+            {"order_id": "ORD001", "reason": "item arrived broken"}
+        ]
+    }
+)
+print(response.json())
+```
+
+**📖 For detailed setup instructions, see [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md)**
+
+**🧪 To test your setup, run:**
+```bash
+python test_google_sheets.py
+```
 
 ## 🧪 Testing
 
