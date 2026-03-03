@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLP Return Reason Classifier - Demo</title>
+    <title>Customer Feedback Intelligence - Demo</title>
     <style>
         * {
             margin: 0;
@@ -389,31 +389,89 @@
         .batch-results {
             margin-top: 20px;
         }
+
+        .rating-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .rating-group label {
+            margin-bottom: 0;
+            font-weight: 600;
+            color: #475569;
+            min-width: 140px;
+        }
+
+        .rating-btn {
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 1.25em;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            line-height: 1;
+            color: #94a3b8;
+        }
+
+        .rating-btn:hover {
+            background: #fff7ed;
+            border-color: #fb923c;
+            transform: scale(1.15);
+        }
+
+        .rating-btn.active {
+            background: #fff7ed;
+            border-color: #f97316;
+            color: #f97316;
+            transform: scale(1.18);
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+        }
+
+        .rating-clear {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.85em;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color 0.15s;
+        }
+
+        .rating-clear:hover {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🤖 NLP Return Reason Classifier</h1>
-            <p class="subtitle">AI-Powered Customer Return Analysis</p>
+            <h1>� Customer Feedback Intelligence</h1>
+            <p class="subtitle">AI-Powered Feedback Analysis with Severity &amp; Goodwill Scoring</p>
             <span class="status-badge" id="statusBadge">⚡ Checking Server...</span>
         </header>
 
         <!-- Overview Section -->
         <div class="section">
             <h2>📊 System Overview</h2>
-            <p>This production-ready NLP system classifies customer return reasons using classical machine learning (TF-IDF + Logistic Regression). It detects spam, assigns severity scores, and provides fast, explainable predictions.</p>
+            <p>This production-ready NLP system analyzes <strong>customer feedback</strong> using classical machine learning (TF-IDF + Logistic Regression). It detects spam, assigns <strong>Severity Scores</strong> for negative feedback and <strong>Goodwill Scores</strong> for positive feedback, and provides fast, explainable predictions.</p>
             
             <div class="api-info">
                 <strong>API Base URL:</strong> <span class="api-endpoint" id="apiUrl">http://localhost:8000</span><br>
                 <strong>Processing Time:</strong> &lt;50ms per request<br>
-                <strong>Model Type:</strong> TF-IDF + Logistic Regression
+                <strong>Model Type:</strong> Dual TF-IDF + Logistic Regression (Negative &amp; Positive sub-models)
             </div>
         </div>
 
         <!-- Categories Section -->
         <div class="section">
             <h2>🏷️ Classification Categories</h2>
+
+            <h3 style="color: #dc2626; margin-bottom: 12px; font-size: 1em;">⚠️ Negative Feedback — Severity Scores</h3>
             <div class="categories-grid" id="categoriesGrid">
                 <div class="category-card">
                     <div class="category-name">Product Quality Issue</div>
@@ -423,7 +481,7 @@
                 <div class="category-card">
                     <div class="category-name">Expiry Issue</div>
                     <div class="severity severity-high">⚠️ Severity: 0.9 (High)</div>
-                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Expired products</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Expired or near-expiry products</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Packaging Issue</div>
@@ -433,7 +491,7 @@
                 <div class="category-card">
                     <div class="category-name">Wrong Item</div>
                     <div class="severity severity-medium">⚠️ Severity: 0.6 (Medium)</div>
-                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Incorrect product sent</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Incorrect product received</p>
                 </div>
                 <div class="category-card">
                     <div class="category-name">Customer Preference</div>
@@ -443,7 +501,36 @@
                 <div class="category-card">
                     <div class="category-name">Other</div>
                     <div class="severity severity-low">⚠️ Severity: 0.2 (Low)</div>
-                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Miscellaneous reasons</p>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Miscellaneous issues</p>
+                </div>
+            </div>
+
+            <h3 style="color: #16a34a; margin: 24px 0 12px 0; font-size: 1em;">✅ Positive Feedback — Goodwill Scores</h3>
+            <div class="categories-grid">
+                <div class="category-card" style="border-left: 4px solid #16a34a;">
+                    <div class="category-name">Product Appreciation</div>
+                    <div class="severity" style="background-color:#dcfce7; color:#15803d;">💚 Goodwill: 0.9 (Excellent)</div>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Praise for product quality or value</p>
+                </div>
+                <div class="category-card" style="border-left: 4px solid #16a34a;">
+                    <div class="category-name">Overall Positive Experience</div>
+                    <div class="severity" style="background-color:#dcfce7; color:#15803d;">💚 Goodwill: 0.85 (Very High)</div>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">General satisfaction with purchase</p>
+                </div>
+                <div class="category-card" style="border-left: 4px solid #16a34a;">
+                    <div class="category-name">Service Satisfaction</div>
+                    <div class="severity" style="background-color:#dcfce7; color:#15803d;">💚 Goodwill: 0.8 (High)</div>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Praise for delivery or customer service</p>
+                </div>
+                <div class="category-card" style="border-left: 4px solid #16a34a;">
+                    <div class="category-name">Packaging Praise</div>
+                    <div class="severity" style="background-color:#dcfce7; color:#15803d;">💚 Goodwill: 0.7 (Good)</div>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">Appreciation for packaging quality</p>
+                </div>
+                <div class="category-card" style="border-left: 4px solid #16a34a;">
+                    <div class="category-name">General Positive</div>
+                    <div class="severity" style="background-color:#dcfce7; color:#15803d;">💚 Goodwill: 0.6 (Moderate)</div>
+                    <p style="color: #64748b; font-size: 0.85em; margin-top: 5px;">General positive remarks</p>
                 </div>
             </div>
         </div>
@@ -452,15 +539,25 @@
         <div class="section">
             <h2>🧪 Test Single Prediction</h2>
             <form class="test-form" id="singleForm">
-                <label for="returnReason">Enter Return Reason:</label>
+                <label for="customerFeedback">Enter Customer Feedback:</label>
                 <input 
                     type="text" 
-                    id="returnReason" 
-                    name="returnReason" 
-                    placeholder="e.g., item arrived broken"
+                    id="customerFeedback" 
+                    name="customerFeedback" 
+                    placeholder="e.g., The product quality is excellent, very happy with the purchase"
                     required
                 >
-                <button type="submit">Classify</button>
+                <div class="rating-group">
+                    <label>Rating (1–5, optional):</label>
+                    <button type="button" class="rating-btn" data-value="1" onclick="setRating(1)" title="1 – Terrible">😡 1</button>
+                    <button type="button" class="rating-btn" data-value="2" onclick="setRating(2)" title="2 – Bad">😞 2</button>
+                    <button type="button" class="rating-btn" data-value="3" onclick="setRating(3)" title="3 – Okay">😐 3</button>
+                    <button type="button" class="rating-btn" data-value="4" onclick="setRating(4)" title="4 – Good">😊 4</button>
+                    <button type="button" class="rating-btn" data-value="5" onclick="setRating(5)" title="5 – Excellent">🤩 5</button>
+                    <button type="button" class="rating-clear" onclick="setRating(0)" title="Clear rating">✖ Clear</button>
+                    <input type="hidden" id="ratingInput" value="">
+                </div>
+                <button type="submit">Analyze Feedback</button>
                 <button type="button" onclick="fillExample()">Try Example</button>
             </form>
 
@@ -472,14 +569,26 @@
             <div class="error-box" id="singleError"></div>
 
             <div class="result-box" id="singleResult">
-                <h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">📋 Prediction Result</h3>
+                <h3 style="color: #0f172a; margin-bottom: 15px; font-weight: 700;">📋 Feedback Analysis Result</h3>
                 <div class="result-item">
-                    <span class="result-label">Category:</span>
-                    <span class="result-value" id="resultCategory">-</span>
+                    <span class="result-label">Sentiment:</span>
+                    <span class="spam-badge" id="resultSentiment">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Issue Category:</span>
+                    <span class="result-value" id="resultIssueCategory">-</span>
                 </div>
                 <div class="result-item">
                     <span class="result-label">Severity Score:</span>
                     <span class="result-value" id="resultSeverity">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Satisfaction Category:</span>
+                    <span class="result-value" id="resultSatisfactionCategory">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Goodwill Score:</span>
+                    <span class="result-value" id="resultGoodwill">-</span>
                 </div>
                 <div class="result-item">
                     <span class="result-label">Confidence:</span>
@@ -499,15 +608,15 @@
         <div class="section">
             <h2>📦 Test Batch Prediction</h2>
             <form class="test-form" id="batchForm">
-                <label for="batchReasons">Enter Multiple Return Reasons (one per line):</label>
+                <label for="batchFeedbacks">Enter Multiple Customer Feedbacks (one per line):</label>
                 <textarea 
                     class="batch-input"
-                    id="batchReasons" 
-                    name="batchReasons" 
-                    placeholder="item arrived broken&#10;wrong product sent&#10;no reason"
+                    id="batchFeedbacks" 
+                    name="batchFeedbacks" 
+                    placeholder="The product is amazing&#10;Wrong item was delivered&#10;Very happy with the packaging"
                     required
                 ></textarea>
-                <button type="submit">Classify Batch</button>
+                <button type="submit">Analyze Batch</button>
                 <button type="button" onclick="fillBatchExample()">Try Batch Example</button>
             </form>
 
@@ -524,7 +633,7 @@
         <!-- Process Existing Google Sheet Section -->
         <div class="section">
             <h2>📊 Process Existing Google Sheet</h2>
-            <p style="margin-bottom: 20px;"><strong>Perfect for sheets that already have data!</strong> Just provide your spreadsheet URL - the system will automatically read your existing data, find the "reason" column, classify all entries, and add new columns with results.</p>
+            <p style="margin-bottom: 20px;"><strong>Perfect for sheets that already have data!</strong> Just provide your spreadsheet URL - the system will automatically read your existing data, find the <strong>"Customer_Feedback"</strong> column, analyze all entries, and add new columns with Sentiment, Severity Score, Goodwill Score, and more.</p>
             
             <div class="api-info" style="margin-bottom: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left-color: #3b82f6;">
                 <strong>✨ Easy Mode:</strong> This is the simplest way to process your existing Google Sheets. No need to format JSON data - just paste your sheet URL!
@@ -549,17 +658,29 @@
                     required
                 >
 
-                <label for="reasonColumnName">Reason Column Name:</label>
+                <label for="feedbackColumnName">Feedback Column Name:</label>
                 <input 
                     type="text" 
-                    id="reasonColumnName" 
-                    name="reasonColumnName" 
-                    value="reason"
-                    placeholder="reason"
+                    id="feedbackColumnName" 
+                    name="feedbackColumnName" 
+                    value="Customer_Feedback"
+                    placeholder="Customer_Feedback"
                     required
                 >
                 <p style="font-size: 0.85em; color: #64748b; margin: -10px 0 15px 0;">
-                    The name of the column in your sheet that contains the return reasons
+                    The name of the column in your sheet that contains the customer feedback text
+                </p>
+
+                <label for="ratingColumnName" style="margin-top: 10px;">Rating Column Name (optional):</label>
+                <input 
+                    type="text" 
+                    id="ratingColumnName" 
+                    name="ratingColumnName" 
+                    value="Rating (1-5)"
+                    placeholder="Rating (1-5)"
+                >
+                <p style="font-size: 0.85em; color: #64748b; margin: -10px 0 15px 0;">
+                    Optional: column containing numeric ratings (1–5) to improve sentiment detection
                 </p>
 
                 <button type="submit">🚀 Process Existing Sheet</button>
@@ -584,7 +705,7 @@
                     <span class="result-value" id="processSheetMessage">-</span>
                 </div>
                 <div class="result-item" style="border-bottom: none;">
-                    <p style="color: #64748b; margin-bottom: 10px;">New columns added: <strong>return_category, return_severity, return_confidence, is_spam, processed_at</strong></p>
+                    <p style="color: #64748b; margin-bottom: 10px;">New columns added: <strong>Sentiment, Issue_Category, Severity_Score, Satisfaction_Category, Goodwill_Score, Confidence, Spam</strong></p>
                     <button type="button" id="viewProcessedSheetBtn" style="background-color: #64748b; color: #ffffff; border-color: #64748b; margin-top: 10px;">
                         📊 Open Google Sheet
                     </button>
@@ -595,7 +716,7 @@
         <!-- Sheet Upload Section -->
         <div class="section">
             <h2>📁 Sheet Analysis (Upload Excel/CSV)</h2>
-            <p style="margin-bottom: 20px;">Upload a Google Sheet or Excel file. The system will look for a <strong>'reason'</strong> column, analyze each row, and provide a downloadable version with <strong>Category, Severity, Confidence, and Spam</strong> columns added.</p>
+            <p style="margin-bottom: 20px;">Upload a Google Sheet or Excel file. The system will look for a <strong>'Customer_Feedback'</strong> column (and optional <strong>'Rating (1-5)'</strong> column), analyze each row, and provide a downloadable version with <strong>Sentiment, Issue_Category, Severity_Score, Satisfaction_Category, Goodwill_Score, Confidence, and Spam</strong> columns added.</p>
             
             <form class="test-form" id="uploadForm">
                 <label for="sheetFile">Select Excel or CSV File:</label>
@@ -660,7 +781,9 @@
         document.getElementById('singleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const returnReason = document.getElementById('returnReason').value;
+            const customerFeedback = document.getElementById('customerFeedback').value;
+            const ratingRaw = document.getElementById('ratingInput').value;
+            const rating = ratingRaw ? parseInt(ratingRaw) : null;
             const loading = document.getElementById('singleLoading');
             const errorBox = document.getElementById('singleError');
             const resultBox = document.getElementById('singleResult');
@@ -676,7 +799,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ return_reason: returnReason })
+                    body: JSON.stringify({ customer_feedback: customerFeedback, rating: rating })
                 });
                 
                 if (!response.ok) {
@@ -685,9 +808,28 @@
                 
                 const data = await response.json();
                 
-                // Display results
-                document.getElementById('resultCategory').textContent = data.reason_category;
-                document.getElementById('resultSeverity').textContent = data.severity_score.toFixed(2);
+                // Display sentiment badge
+                const sentimentBadge = document.getElementById('resultSentiment');
+                sentimentBadge.style.backgroundColor = '';
+                sentimentBadge.style.color = '';
+                if (data.sentiment_type === 'Positive') {
+                    sentimentBadge.textContent = '✅ Positive';
+                    sentimentBadge.className = 'spam-badge spam-no';
+                } else if (data.sentiment_type === 'Negative') {
+                    sentimentBadge.textContent = '⚠️ Negative';
+                    sentimentBadge.className = 'spam-badge spam-yes';
+                } else {
+                    sentimentBadge.textContent = '➖ Neutral';
+                    sentimentBadge.className = 'spam-badge';
+                    sentimentBadge.style.backgroundColor = '#e2e8f0';
+                    sentimentBadge.style.color = '#475569';
+                }
+                
+                // Display category & scores
+                document.getElementById('resultIssueCategory').textContent = data.issue_category || '—';
+                document.getElementById('resultSeverity').textContent = data.severity_score != null ? data.severity_score.toFixed(2) : '—';
+                document.getElementById('resultSatisfactionCategory').textContent = data.satisfaction_category || '—';
+                document.getElementById('resultGoodwill').textContent = data.goodwill_score != null ? data.goodwill_score.toFixed(2) : '—';
                 
                 const confidence = data.confidence || 0;
                 document.getElementById('resultConfidence').textContent = (confidence * 100).toFixed(1) + '%';
@@ -717,8 +859,8 @@
         document.getElementById('batchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const batchReasonsText = document.getElementById('batchReasons').value;
-            const returnReasons = batchReasonsText.split('\n').filter(line => line.trim() !== '');
+            const batchFeedbacksText = document.getElementById('batchFeedbacks').value;
+            const customerFeedbacks = batchFeedbacksText.split('\n').filter(line => line.trim() !== '');
             
             const loading = document.getElementById('batchLoading');
             const errorBox = document.getElementById('batchError');
@@ -735,7 +877,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ return_reasons: returnReasons })
+                    body: JSON.stringify({ customer_feedbacks: customerFeedbacks })
                 });
                 
                 if (!response.ok) {
@@ -751,13 +893,17 @@
                     const spamClass = pred.is_spam ? 'spam-yes' : 'spam-no';
                     const spamText = pred.is_spam ? '⚠️ SPAM' : '✅ Valid';
                     const confidence = pred.confidence || 0;
+                    const sentClass = pred.sentiment_type === 'Positive' ? 'spam-no' : pred.sentiment_type === 'Negative' ? 'spam-yes' : '';
                     
                     html += `
                         <div class="result-item">
-                            <div style="color: #0f172a; font-weight: 700; margin-bottom: 8px;">Input ${index + 1}: "${returnReasons[index]}"</div>
+                            <div style="color: #0f172a; font-weight: 700; margin-bottom: 8px;">Input ${index + 1}: "${customerFeedbacks[index]}"</div>
                             <div style="margin-left: 15px;">
-                                <div><span class="result-label">Category:</span> <span class="result-value">${pred.reason_category}</span></div>
-                                <div><span class="result-label">Severity:</span> <span class="result-value">${pred.severity_score.toFixed(2)}</span></div>
+                                <div><span class="result-label">Sentiment:</span> <span class="spam-badge ${sentClass}">${pred.sentiment_type}</span></div>
+                                <div><span class="result-label">Issue Category:</span> <span class="result-value">${pred.issue_category || '—'}</span></div>
+                                <div><span class="result-label">Severity:</span> <span class="result-value">${pred.severity_score != null ? pred.severity_score.toFixed(2) : '—'}</span></div>
+                                <div><span class="result-label">Satisfaction:</span> <span class="result-value">${pred.satisfaction_category || '—'}</span></div>
+                                <div><span class="result-label">Goodwill:</span> <span class="result-value">${pred.goodwill_score != null ? pred.goodwill_score.toFixed(2) : '—'}</span></div>
                                 <div><span class="result-label">Confidence:</span> <span class="result-value">${(confidence * 100).toFixed(1)}%</span></div>
                                 <div><span class="result-label">Spam:</span> <span class="spam-badge ${spamClass}">${spamText}</span></div>
                             </div>
@@ -776,39 +922,62 @@
             }
         });
 
+        // Rating button handler
+        function setRating(value) {
+            const hidden = document.getElementById('ratingInput');
+            const buttons = document.querySelectorAll('.rating-btn');
+            if (value === 0) {
+                hidden.value = '';
+                buttons.forEach(b => b.classList.remove('active'));
+                return;
+            }
+            hidden.value = value;
+            buttons.forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.value) === value);
+            });
+        }
+
         // Example data functions
         function fillExample() {
             const examples = [
-                "item arrived broken",
-                "product is defective",
-                "wrong item sent",
-                "package was damaged",
-                "product expired",
-                "changed my mind"
+                { feedback: "The product quality is excellent, very satisfied with the purchase!", rating: 5 },
+                { feedback: "Item arrived completely broken, very disappointed.", rating: 1 },
+                { feedback: "Fast delivery and great packaging, will order again.", rating: 5 },
+                { feedback: "Product smells strange and looks expired.", rating: 2 },
+                { feedback: "Wrong item was sent, expected red but got blue.", rating: 2 },
+                { feedback: "Good value for money, exactly as described.", rating: 4 }
             ];
             const randomExample = examples[Math.floor(Math.random() * examples.length)];
-            document.getElementById('returnReason').value = randomExample;
+            document.getElementById('customerFeedback').value = randomExample.feedback;
+            setRating(randomExample.rating);
+            // Auto-submit after a short delay so the user can see the filled values
+            setTimeout(() => {
+                document.getElementById('singleForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }, 300);
         }
 
         function fillBatchExample() {
-            const batchExample = `item arrived broken
-wrong product sent
-no reason
-package was damaged
-product is defective
-I don't like the color`;
-            document.getElementById('batchReasons').value = batchExample;
+            const batchExample = `The product quality is amazing, very happy with it!
+Item arrived broken and the packaging was damaged.
+Fast delivery, packaging was excellent.
+Wrong item sent, I ordered a different size.
+Product tastes great, will definitely reorder.
+The product smells off and looks expired.`;
+            document.getElementById('batchFeedbacks').value = batchExample;
+            setTimeout(() => {
+                document.getElementById('batchForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }, 300);
         }
 
         function fillSheetsExample() {
             document.getElementById('spreadsheetUrl').value = 'https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg/edit';
-            document.getElementById('worksheetName').value = 'Returns';
+            document.getElementById('worksheetName').value = 'Feedback';
             const exampleData = `[
-  {"order_id": "ORD001", "customer": "Alice Johnson", "reason": "Product arrived damaged during shipping"},
-  {"order_id": "ORD002", "customer": "Bob Smith", "reason": "Received wrong color - ordered blue but got red"},
-  {"order_id": "ORD003", "customer": "Carol White", "reason": "Item too small, need larger size"},
-  {"order_id": "ORD004", "customer": "David Brown", "reason": "Quality not as expected, material feels cheap"},
-  {"order_id": "ORD005", "customer": "Emma Davis", "reason": "Product expired, expiry date already passed"}
+  {"order_id": "ORD001", "customer": "Alice Johnson", "customer_feedback": "Product quality is excellent, very happy!", "rating": 5},
+  {"order_id": "ORD002", "customer": "Bob Smith", "customer_feedback": "Wrong item delivered, very disappointed", "rating": 1},
+  {"order_id": "ORD003", "customer": "Carol White", "customer_feedback": "Fast delivery and great packaging", "rating": 4},
+  {"order_id": "ORD004", "customer": "David Brown", "customer_feedback": "Product arrived broken and packaging damaged", "rating": 2},
+  {"order_id": "ORD005", "customer": "Emma Davis", "customer_feedback": "Item smells off, looks like it could be expired", "rating": 1}
 ]`;
             document.getElementById('sheetsData').value = exampleData;
         }
@@ -816,7 +985,8 @@ I don't like the color`;
         function fillProcessSheetExample() {
             document.getElementById('processSpreadsheetUrl').value = 'https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg/edit';
             document.getElementById('processWorksheetName').value = 'Sheet1';
-            document.getElementById('reasonColumnName').value = 'reason';
+            document.getElementById('feedbackColumnName').value = 'Customer_Feedback';
+            document.getElementById('ratingColumnName').value = 'Rating (1-5)';
         }
 
         // Helper function to extract spreadsheet ID from URL
@@ -842,7 +1012,8 @@ I don't like the color`;
             
             const urlInput = document.getElementById('processSpreadsheetUrl').value;
             const worksheetName = document.getElementById('processWorksheetName').value.trim();
-            const reasonColumn = document.getElementById('reasonColumnName').value.trim();
+            const feedbackColumn = document.getElementById('feedbackColumnName').value.trim();
+            const ratingColumn = document.getElementById('ratingColumnName').value.trim();
             
             const loading = document.getElementById('processSheetLoading');
             const errorBox = document.getElementById('processSheetError');
@@ -865,7 +1036,8 @@ I don't like the color`;
                 const payload = {
                     spreadsheet_id: spreadsheetId,
                     worksheet_name: worksheetName || null,
-                    reason_column: reasonColumn || 'reason'
+                    feedback_column: feedbackColumn || 'Customer_Feedback',
+                    rating_column: ratingColumn || null
                 };
                 
                 // Make API call
@@ -955,10 +1127,10 @@ I don't like the color`;
                     throw new Error('Data array cannot be empty');
                 }
                 
-                // Check if all objects have a 'reason' field
-                const missingReason = data.findIndex(item => !item.reason);
-                if (missingReason !== -1) {
-                    throw new Error(`Item at index ${missingReason} is missing the required "reason" field`);
+                // Check if all objects have a 'customer_feedback' field
+                const missingFeedback = data.findIndex(item => !item.customer_feedback);
+                if (missingFeedback !== -1) {
+                    throw new Error(`Item at index ${missingFeedback} is missing the required "customer_feedback" field`);
                 }
                 
                 // Prepare request payload
@@ -1064,7 +1236,7 @@ I don't like the color`;
                     document.body.removeChild(a);
                 };
                 
-                statsText.textContent = `File "${file.name}" analyzed successfully. New columns for Category, Severity, Confidence, and Spam have been added.`;
+                statsText.textContent = `File "${file.name}" analyzed successfully. New columns for Sentiment, Issue_Category, Severity_Score, Satisfaction_Category, Goodwill_Score, Confidence, and Spam have been added.`;
                 
                 loading.classList.remove('show');
                 resultBox.classList.add('show');

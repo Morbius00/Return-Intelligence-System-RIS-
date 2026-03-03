@@ -1,6 +1,12 @@
 """
-Training script for NLP classifier.
-Trains TF-IDF + Logistic Regression model on labeled data and saves to disk.
+Training script for the FeedbackClassifier.
+
+Trains two TF-IDF + Logistic Regression models:
+  • Negative sub-model  → classifies issue category + Severity Score
+  • Positive sub-model  → classifies satisfaction category + Goodwill Score
+
+Training data: training_data/feedback_training_data.csv
+  Columns: customer_feedback, sentiment, category
 """
 import os
 import sys
@@ -8,13 +14,11 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.nlp.classifier import NLPClassifier, VALID_CATEGORIES
+from app.nlp.classifier import FeedbackClassifier, NEGATIVE_CATEGORIES, POSITIVE_CATEGORIES
 
 # Configure logging
 logging.basicConfig(
@@ -24,168 +28,152 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-TRAINING_DATA_PATH = Path(__file__).parent / "training_data" / "sample_data.csv"
-MODEL_DIR = Path(__file__).parent / "app" / "models"
-MODEL_PATH = MODEL_DIR / "model.pkl"
-VECTORIZER_PATH = MODEL_DIR / "tfidf.pkl"
+TRAINING_DATA_PATH = Path(__file__).parent / "training_data" / "feedback_training_data.csv"
+MODEL_DIR          = Path(__file__).parent / "app" / "models"
+
+NEG_MODEL_PATH      = MODEL_DIR / "neg_model.pkl"
+NEG_VECTORIZER_PATH = MODEL_DIR / "neg_tfidf.pkl"
+POS_MODEL_PATH      = MODEL_DIR / "pos_model.pkl"
+POS_VECTORIZER_PATH = MODEL_DIR / "pos_tfidf.pkl"
 
 
-def load_training_data(data_path: Path) -> tuple[list[str], list[str]]:
+def load_training_data(data_path: Path):
     """
-    Load training data from CSV file.
-    
-    Args:
-        data_path: Path to CSV file with columns: return_reason, category
-        
-    Returns:
-        Tuple of (texts, labels)
+    Load training data from the feedback CSV.
+
+    Expected columns: customer_feedback, sentiment, category
+
+    Returns
+    -------
+    (texts, sentiments, categories) – three parallel lists
     """
     if not data_path.exists():
         raise FileNotFoundError(f"Training data not found: {data_path}")
-    
+
     logger.info(f"Loading training data from: {data_path}")
     df = pd.read_csv(data_path)
-    
-    # Validate columns
-    if "return_reason" not in df.columns or "category" not in df.columns:
-        raise ValueError("CSV must contain 'return_reason' and 'category' columns")
-    
-    # Remove any NaN values
+
+    required = {"customer_feedback", "sentiment", "category"}
+    missing  = required - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"CSV is missing required columns: {missing}. "
+            f"Found: {df.columns.tolist()}"
+        )
+
     df = df.dropna()
-    
-    texts = df["return_reason"].tolist()
-    labels = df["category"].tolist()
-    
+
+    texts      = df["customer_feedback"].tolist()
+    sentiments = df["sentiment"].tolist()
+    categories = df["category"].tolist()
+
     logger.info(f"Loaded {len(texts)} training samples")
-    logger.info(f"Categories: {df['category'].unique().tolist()}")
+    logger.info(f"Sentiment distribution:\n{df['sentiment'].value_counts()}")
     logger.info(f"Category distribution:\n{df['category'].value_counts()}")
-    
-    return texts, labels
+
+    return texts, sentiments, categories
 
 
-def validate_categories(labels: list[str]) -> bool:
-    """
-    Validate that all labels are valid categories.
-    
-    Args:
-        labels: List of category labels
-        
-    Returns:
-        True if all valid
-    """
-    unique_labels = set(labels)
-    invalid = unique_labels - set(VALID_CATEGORIES)
-    
-    if invalid:
-        logger.error(f"Invalid categories found: {invalid}")
-        logger.error(f"Valid categories are: {VALID_CATEGORIES}")
-        return False
-    
-    return True
+def validate_categories(sentiments: list, categories: list) -> bool:
+    """Validate that all labels belong to the expected sets."""
+    valid_neg = set(NEGATIVE_CATEGORIES)
+    valid_pos = set(POSITIVE_CATEGORIES)
+    errors = []
+    for sent, cat in zip(sentiments, categories):
+        if sent == "Negative" and cat not in valid_neg:
+            errors.append(f"Unknown negative category: '{cat}'")
+        elif sent == "Positive" and cat not in valid_pos and cat != "General Positive":
+            errors.append(f"Unknown positive category: '{cat}'")
+    if errors:
+        for e in set(errors):
+            logger.warning(e)
+    return True  # warnings only – training can still proceed
 
 
-def train_model(
-    texts: list[str],
-    labels: list[str],
-    test_size: float = 0.2,
-    random_state: int = 42
-) -> NLPClassifier:
-    """
-    Train the NLP classifier.
-    
-    Args:
-        texts: List of training texts
-        labels: List of category labels
-        test_size: Fraction for test split
-        random_state: Random seed
-        
-    Returns:
-        Trained NLPClassifier
-    """
-    logger.info("Initializing classifier...")
-    classifier = NLPClassifier(
-        max_features=1000,
-        ngram_range=(1, 2)
-    )
-    
+def train_model(texts: list, sentiments: list, categories: list) -> FeedbackClassifier:
+    """Instantiate and train the FeedbackClassifier."""
+    logger.info("Initializing FeedbackClassifier...")
+    classifier = FeedbackClassifier(max_features=1000, ngram_range=(1, 2))
+
     logger.info("Starting training...")
     metrics = classifier.train(
         texts=texts,
-        labels=labels,
-        test_size=test_size,
-        random_state=random_state
+        sentiments=sentiments,
+        categories=categories,
+        test_size=0.2,
+        random_state=42,
     )
-    
+
     logger.info("\nTraining Metrics:")
     for key, value in metrics.items():
         logger.info(f"  {key}: {value}")
-    
+
     return classifier
 
 
-def test_predictions(classifier: NLPClassifier):
-    """
-    Test the classifier with sample inputs.
-    
-    Args:
-        classifier: Trained classifier
-    """
+def test_predictions(classifier: FeedbackClassifier):
+    """Smoke-test the trained classifier."""
     test_cases = [
-        "Item arrived completely broken",
-        "Wrong product was sent to me",
-        "Product is already expired",
-        "Package was torn and damaged",
-        "I changed my mind don't need it",
-        "no reason",
-        "Quality is poor",
-        "Late delivery"
+        ("Excellent product quality and very useful in daily life.", 5),
+        ("Battery life is impressive and long-lasting.", 4),
+        ("Delivery was fast and product works perfectly.", 5),
+        ("Highly recommended to others.", 5),
+        ("Product arrived completely broken and unusable.", 1),
+        ("Received a completely wrong item.", 2),
+        ("Packaging was torn and item was damaged.", 2),
+        ("Got an expired product.", 1),
+        ("I changed my mind, no longer need this.", 2),
+        ("Average experience, could be improved.", 3),
+        ("no reason", None),
     ]
-    
-    logger.info("\n" + "="*60)
-    logger.info("Testing predictions on sample inputs:")
-    logger.info("="*60)
-    
-    for text in test_cases:
-        result = classifier.predict(text)
-        logger.info(f"\nInput: {text}")
-        logger.info(f"Category: {result['reason_category']}")
-        logger.info(f"Severity: {result['severity_score']}")
-        logger.info(f"Is Spam: {result['is_spam']}")
-        if 'confidence' in result:
-            logger.info(f"Confidence: {result['confidence']:.2f}")
+
+    logger.info("\n" + "=" * 65)
+    logger.info("Smoke-test predictions:")
+    logger.info("=" * 65)
+
+    for feedback, rating in test_cases:
+        result = classifier.predict(feedback, rating)
+        logger.info(f"\nFeedback : {feedback}")
+        logger.info(f"Rating   : {rating}")
+        logger.info(f"Sentiment: {result['sentiment_type']}")
+        if result["issue_category"]:
+            logger.info(f"Issue    : {result['issue_category']}  (Severity {result['severity_score']})")
+        if result["satisfaction_category"]:
+            logger.info(f"Satisfaction: {result['satisfaction_category']}  (Goodwill {result['goodwill_score']})")
+        if result["is_spam"]:
+            logger.info("→ Detected as spam / insufficient input")
 
 
 def main():
-    """Main training function."""
+    """Main training entry point."""
     try:
-        # Create model directory if it doesn't exist
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        
-        # Load data
-        texts, labels = load_training_data(TRAINING_DATA_PATH)
-        
-        # Validate categories
-        if not validate_categories(labels):
-            sys.exit(1)
-        
-        # Train model
-        classifier = train_model(texts, labels)
-        
-        # Save models
+
+        texts, sentiments, categories = load_training_data(TRAINING_DATA_PATH)
+        validate_categories(sentiments, categories)
+
+        classifier = train_model(texts, sentiments, categories)
+
         logger.info(f"\nSaving models to: {MODEL_DIR}")
-        classifier.save_models(str(MODEL_PATH), str(VECTORIZER_PATH))
-        
-        # Test predictions
+        classifier.save_models(
+            neg_model_path      = str(NEG_MODEL_PATH),
+            neg_vectorizer_path = str(NEG_VECTORIZER_PATH),
+            pos_model_path      = str(POS_MODEL_PATH),
+            pos_vectorizer_path = str(POS_VECTORIZER_PATH),
+        )
+
         test_predictions(classifier)
-        
-        logger.info("\n" + "="*60)
+
+        logger.info("\n" + "=" * 65)
         logger.info("✓ Training complete!")
-        logger.info("="*60)
-        logger.info(f"Model saved to: {MODEL_PATH}")
-        logger.info(f"Vectorizer saved to: {VECTORIZER_PATH}")
-        logger.info("\nYou can now run the API server with:")
+        logger.info("=" * 65)
+        logger.info(f"Negative model     : {NEG_MODEL_PATH}")
+        logger.info(f"Negative vectorizer: {NEG_VECTORIZER_PATH}")
+        logger.info(f"Positive model     : {POS_MODEL_PATH}")
+        logger.info(f"Positive vectorizer: {POS_VECTORIZER_PATH}")
+        logger.info("\nStart the API server with:")
         logger.info("  python -m uvicorn app.main:app --reload")
-        
+
     except Exception as e:
         logger.error(f"Training failed: {e}", exc_info=True)
         sys.exit(1)

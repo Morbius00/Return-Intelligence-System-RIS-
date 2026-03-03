@@ -29,9 +29,11 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Model paths
-MODEL_DIR = Path(__file__).parent / "app" / "models"
-MODEL_PATH = MODEL_DIR / "model.pkl"
-VECTORIZER_PATH = MODEL_DIR / "tfidf.pkl"
+MODEL_DIR           = Path(__file__).parent / "app" / "models"
+NEG_MODEL_PATH      = MODEL_DIR / "neg_model.pkl"
+NEG_VECTORIZER_PATH = MODEL_DIR / "neg_tfidf.pkl"
+POS_MODEL_PATH      = MODEL_DIR / "pos_model.pkl"
+POS_VECTORIZER_PATH = MODEL_DIR / "pos_tfidf.pkl"
 
 
 class BatchProcessor:
@@ -58,67 +60,66 @@ class BatchProcessor:
         self,
         spreadsheet_id: str,
         worksheet_name: Optional[str] = None,
-        return_reason_column: str = "return_reason"
+        feedback_column: str = "Customer_Feedback",
+        rating_column: Optional[str] = None,
     ):
         """
-        Process all return reasons in a Google Sheet.
-        
+        Process all customer feedback entries in a Google Sheet.
+
         Args:
-            spreadsheet_id: Google Sheets spreadsheet ID
-            worksheet_name: Name of worksheet (optional)
-            return_reason_column: Name of column containing return reasons
+            spreadsheet_id : Google Sheets spreadsheet ID
+            worksheet_name : Name of worksheet (optional)
+            feedback_column: Name of column containing customer feedback
+            rating_column  : Optional column name for star ratings
         """
         logger.info(f"Reading data from spreadsheet: {spreadsheet_id}")
-        
-        # Read sheet data
+
         df = self.sheets_service.read_sheet_to_dataframe(
             spreadsheet_id=spreadsheet_id,
             worksheet_name=worksheet_name
         )
-        
+
         if df.empty:
             logger.warning("Sheet is empty. Nothing to process.")
             return
-        
-        # Validate column exists
-        if return_reason_column not in df.columns:
+
+        if feedback_column not in df.columns:
             raise ValueError(
-                f"Column '{return_reason_column}' not found. "
+                f"Column '{feedback_column}' not found. "
                 f"Available columns: {df.columns.tolist()}"
             )
-        
+
         logger.info(f"Processing {len(df)} rows...")
-        
-        # Extract return reasons
-        return_reasons = df[return_reason_column].fillna("").astype(str).tolist()
-        
-        # Classify all reasons
-        results = self.classifier.predict_batch(return_reasons)
+
+        feedbacks = df[feedback_column].fillna("").astype(str).tolist()
+        ratings   = None
+        if rating_column and rating_column in df.columns:
+            ratings = [
+                (int(v) if str(v).isdigit() else None)
+                for v in df[rating_column].fillna("").astype(str).tolist()
+            ]
+
+        results = self.classifier.predict_batch(feedbacks, ratings=ratings)
         
         # Extract results into separate lists
-        categories = [r["reason_category"] for r in results]
-        severities = [r["severity_score"] for r in results]
-        spam_flags = [r["is_spam"] for r in results]
-        
+        sentiments     = [r["sentiment_type"]        for r in results]
+        issue_cats     = [r["issue_category"]   or "" for r in results]
+        severities     = [r["severity_score"]    if r["severity_score"]  is not None else "" for r in results]
+        sat_cats       = [r["satisfaction_category"] or "" for r in results]
+        goodwills      = [r["goodwill_score"]    if r["goodwill_score"]   is not None else "" for r in results]
+        spam_flags     = [r["is_spam"]               for r in results]
+
         # Log statistics
-        spam_count = sum(spam_flags)
+        spam_count     = sum(spam_flags)
+        pos_count      = sentiments.count("Positive")
+        neg_count      = sentiments.count("Negative")
+        neutral_count  = sentiments.count("Neutral")
         logger.info(f"Classification complete:")
-        logger.info(f"  Total processed: {len(results)}")
-        logger.info(f"  Spam detected: {spam_count}")
-        logger.info(f"  Valid classifications: {len(results) - spam_count}")
-        
-        # Category distribution
-        category_counts = pd.Series(categories).value_counts()
-        logger.info("\nCategory distribution:")
-        for category, count in category_counts.items():
-            logger.info(f"  {category}: {count}")
-        
-        # Prepare updates
-        updates = {
-            "reason_category": categories,
-            "severity_score": severities,
-            "is_spam": spam_flags
-        }
+        logger.info(f"  Total processed : {len(results)}")
+        logger.info(f"  Spam detected   : {spam_count}")
+        logger.info(f"  Positive        : {pos_count}")
+        logger.info(f"  Negative        : {neg_count}")
+        logger.info(f"  Neutral         : {neutral_count}")
         
         # Write results back to sheet
         logger.info("\nWriting results back to Google Sheets...")
@@ -126,77 +127,87 @@ class BatchProcessor:
             spreadsheet_id=spreadsheet_id,
             row_data=[
                 {
-                    "reason_category": cat,
-                    "severity_score": sev,
-                    "is_spam": spam
+                    "sentiment_type":        sent,
+                    "issue_category":        ic,
+                    "severity_score":        sev,
+                    "satisfaction_category": sc,
+                    "goodwill_score":        gw,
+                    "is_spam":               spam,
                 }
-                for cat, sev, spam in zip(categories, severities, spam_flags)
+                for sent, ic, sev, sc, gw, spam in zip(
+                    sentiments, issue_cats, severities, sat_cats, goodwills, spam_flags
+                )
             ],
             worksheet_name=worksheet_name,
-            start_row=2  # Skip header row
+            start_row=2
         )
-        
+
         logger.info("✓ Batch processing complete!")
     
     def process_local_csv(
         self,
         csv_path: str,
         output_path: str,
-        return_reason_column: str = "return_reason"
+        feedback_column: str = "Customer_Feedback",
+        rating_column: Optional[str] = None,
     ):
         """
-        Process a local CSV file instead of Google Sheets.
-        
+        Process a local CSV or Excel file and save enriched output.
+
         Args:
-            csv_path: Path to input CSV file
-            output_path: Path to output CSV file
-            return_reason_column: Name of column containing return reasons
+            csv_path       : Path to input file (CSV or Excel)
+            output_path    : Path to output CSV file
+            feedback_column: Name of column containing customer feedback
+            rating_column  : Optional column name for star ratings
         """
         logger.info(f"Reading data from: {csv_path}")
-        
-        # Read CSV
-        df = pd.read_csv(csv_path)
-        
+
+        if csv_path.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(csv_path)
+        else:
+            df = pd.read_csv(csv_path)
+
         if df.empty:
-            logger.warning("CSV is empty. Nothing to process.")
+            logger.warning("File is empty. Nothing to process.")
             return
-        
-        # Validate column exists
-        if return_reason_column not in df.columns:
+
+        if feedback_column not in df.columns:
             raise ValueError(
-                f"Column '{return_reason_column}' not found. "
+                f"Column '{feedback_column}' not found. "
                 f"Available columns: {df.columns.tolist()}"
             )
-        
+
         logger.info(f"Processing {len(df)} rows...")
-        
-        # Extract return reasons
-        return_reasons = df[return_reason_column].fillna("").astype(str).tolist()
-        
-        # Classify all reasons
-        results = self.classifier.predict_batch(return_reasons)
-        
-        # Add results to dataframe
-        df["reason_category"] = [r["reason_category"] for r in results]
-        df["severity_score"] = [r["severity_score"] for r in results]
-        df["is_spam"] = [r["is_spam"] for r in results]
-        
-        # Save to output CSV
+
+        feedbacks = df[feedback_column].fillna("").astype(str).tolist()
+        ratings   = None
+        if rating_column and rating_column in df.columns:
+            ratings = [
+                (int(v) if str(v).isdigit() else None)
+                for v in df[rating_column].fillna("").astype(str).tolist()
+            ]
+
+        results = self.classifier.predict_batch(feedbacks, ratings=ratings)
+
+        # Add enriched columns
+        df["sentiment_type"]        = [r["sentiment_type"]                  for r in results]
+        df["issue_category"]        = [r["issue_category"]   or ""          for r in results]
+        df["severity_score"]        = [r["severity_score"]   if r["severity_score"]  is not None else "" for r in results]
+        df["satisfaction_category"] = [r["satisfaction_category"] or ""     for r in results]
+        df["goodwill_score"]        = [r["goodwill_score"]   if r["goodwill_score"]   is not None else "" for r in results]
+        df["is_spam"]               = [r["is_spam"]                         for r in results]
+
         df.to_csv(output_path, index=False)
-        
         logger.info(f"✓ Results saved to: {output_path}")
-        
-        # Log statistics
-        spam_count = df["is_spam"].sum()
+
+        spam_count = sum(r["is_spam"] for r in results)
+        pos_count  = sum(1 for r in results if r["sentiment_type"] == "Positive")
+        neg_count  = sum(1 for r in results if r["sentiment_type"] == "Negative")
         logger.info(f"\nStatistics:")
         logger.info(f"  Total processed: {len(df)}")
-        logger.info(f"  Spam detected: {spam_count}")
-        logger.info(f"  Valid classifications: {len(df) - spam_count}")
-        
-        # Category distribution
-        logger.info("\nCategory distribution:")
-        for category, count in df["reason_category"].value_counts().items():
-            logger.info(f"  {category}: {count}")
+        logger.info(f"  Spam detected  : {spam_count}")
+        logger.info(f"  Positive       : {pos_count}")
+        logger.info(f"  Negative       : {neg_count}")
 
 
 def main():
@@ -228,25 +239,36 @@ def main():
     )
     parser.add_argument(
         "--column",
-        default="return_reason",
-        help="Name of column containing return reasons (default: return_reason)"
+        default="Customer_Feedback",
+        help="Name of column containing customer feedback (default: Customer_Feedback)"
+    )
+    parser.add_argument(
+        "--rating-column",
+        default=None,
+        help="Optional name of column containing star ratings (e.g. 'Rating (1-5)')"
     )
     
     args = parser.parse_args()
     
     try:
         # Load classifier
-        logger.info("Loading trained model...")
-        if not MODEL_PATH.exists() or not VECTORIZER_PATH.exists():
-            logger.error(f"Model files not found in {MODEL_DIR}")
+        logger.info("Loading trained feedback classifier models...")
+        all_exist = (
+            NEG_MODEL_PATH.exists() and NEG_VECTORIZER_PATH.exists()
+            and POS_MODEL_PATH.exists() and POS_VECTORIZER_PATH.exists()
+        )
+        if not all_exist:
+            logger.error(f"One or more model files not found in {MODEL_DIR}")
             logger.error("Please train the model first using: python train.py")
             sys.exit(1)
-        
+
         classifier = NLPClassifier(
-            model_path=str(MODEL_PATH),
-            vectorizer_path=str(VECTORIZER_PATH)
+            neg_model_path      = str(NEG_MODEL_PATH),
+            neg_vectorizer_path = str(NEG_VECTORIZER_PATH),
+            pos_model_path      = str(POS_MODEL_PATH),
+            pos_vectorizer_path = str(POS_VECTORIZER_PATH),
         )
-        logger.info("Model loaded successfully")
+        logger.info("Models loaded successfully")
         
         if args.mode == "sheets":
             # Google Sheets mode
@@ -263,25 +285,24 @@ def main():
             
             # Process sheet
             processor.process_sheet(
-                spreadsheet_id=args.spreadsheet_id,
-                worksheet_name=args.worksheet_name,
-                return_reason_column=args.column
+                spreadsheet_id  = args.spreadsheet_id,
+                worksheet_name  = args.worksheet_name,
+                feedback_column = args.column,
+                rating_column   = args.rating_column,
             )
-        
+
         elif args.mode == "csv":
-            # Local CSV mode
             if not args.csv_input or not args.csv_output:
                 logger.error("--csv-input and --csv-output are required for csv mode")
                 sys.exit(1)
-            
-            # Create batch processor (sheets_service not needed)
+
             processor = BatchProcessor(classifier, None)
-            
-            # Process CSV
+
             processor.process_local_csv(
-                csv_path=args.csv_input,
-                output_path=args.csv_output,
-                return_reason_column=args.column
+                csv_path        = args.csv_input,
+                output_path     = args.csv_output,
+                feedback_column = args.column,
+                rating_column   = getattr(args, 'rating_column', None),
             )
     
     except Exception as e:

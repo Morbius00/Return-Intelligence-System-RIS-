@@ -31,9 +31,13 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="NLP Return Reason Classifier",
-    description="Lightweight NLP system for classifying customer return reasons using classical ML",
-    version="1.0.0",
+    title="Customer Feedback Intelligence API",
+    description=(
+        "NLP system that classifies customer feedback into Positive / Negative / Neutral sentiment, "
+        "assigns issue categories with Severity Scores for negative feedback, "
+        "and satisfaction categories with Goodwill Scores for positive feedback."
+    ),
+    version="2.0.0",
 )
 
 # Configure CORS
@@ -46,9 +50,11 @@ app.add_middleware(
 )
 
 # Model paths
-MODEL_DIR = Path(__file__).parent / "models"
-MODEL_PATH = MODEL_DIR / "model.pkl"
-VECTORIZER_PATH = MODEL_DIR / "tfidf.pkl"
+MODEL_DIR           = Path(__file__).parent / "models"
+NEG_MODEL_PATH      = MODEL_DIR / "neg_model.pkl"
+NEG_VECTORIZER_PATH = MODEL_DIR / "neg_tfidf.pkl"
+POS_MODEL_PATH      = MODEL_DIR / "pos_model.pkl"
+POS_VECTORIZER_PATH = MODEL_DIR / "pos_tfidf.pkl"
 
 # Global classifier instance
 classifier: Optional[NLPClassifier] = None
@@ -59,65 +65,77 @@ sheets_service: Optional[GoogleSheetsService] = None
 
 # Pydantic models for API
 class PredictionRequest(BaseModel):
-    """Request model for single prediction."""
-    return_reason: str = Field(..., description="Customer return reason text")
-    
+    """Request model for single feedback prediction."""
+    customer_feedback: str = Field(..., description="Customer feedback text")
+    rating: Optional[int] = Field(None, description="Optional star rating (1-5)")
+
     class Config:
         json_schema_extra = {
             "example": {
-                "return_reason": "item arrived broken"
+                "customer_feedback": "Excellent product quality and very useful in daily life.",
+                "rating": 5
             }
         }
 
 
 class PredictionResponse(BaseModel):
-    """Response model for single prediction."""
-    is_spam: bool = Field(..., description="Whether input is spam/meaningless")
-    reason_category: str = Field(..., description="Classified category")
-    severity_score: float = Field(..., description="Severity score (0.0 to 1.0)")
-    confidence: Optional[float] = Field(None, description="Model confidence score")
-    
+    """Response model for a single feedback prediction."""
+    is_spam:               bool             = Field(..., description="Whether input is spam/meaningless")
+    sentiment_type:        str              = Field(..., description="Positive | Negative | Neutral")
+    issue_category:        Optional[str]    = Field(None, description="Issue type (negative feedback only)")
+    severity_score:        Optional[float]  = Field(None, description="Operational risk score 0.0-1.0 (negative only)")
+    satisfaction_category: Optional[str]    = Field(None, description="Satisfaction type (positive feedback only)")
+    goodwill_score:        Optional[float]  = Field(None, description="Customer trust score 0.0-1.0 (positive only)")
+    confidence:            Optional[float]  = Field(None, description="Model confidence score")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "is_spam": False,
-                "reason_category": "Product Quality Issue",
-                "severity_score": 0.9,
-                "confidence": 0.85
+                "sentiment_type": "Positive",
+                "issue_category": None,
+                "severity_score": None,
+                "satisfaction_category": "Product Appreciation",
+                "goodwill_score": 0.9,
+                "confidence": 0.87
             }
         }
 
 
 class BatchPredictionRequest(BaseModel):
-    """Request model for batch prediction."""
-    return_reasons: List[str] = Field(..., description="List of return reason texts")
-    
+    """Request model for batch feedback prediction."""
+    customer_feedbacks: List[str]           = Field(..., description="List of customer feedback texts")
+    ratings:            Optional[List[Optional[int]]] = Field(None, description="Optional parallel list of ratings (1-5)")
+
     class Config:
         json_schema_extra = {
             "example": {
-                "return_reasons": [
-                    "item arrived broken",
-                    "wrong product sent",
-                    "no reason"
-                ]
+                "customer_feedbacks": [
+                    "Excellent product quality!",
+                    "Product arrived completely broken."
+                ],
+                "ratings": [5, 1]
             }
         }
 
 
 class BatchPredictionResponse(BaseModel):
-    """Response model for batch prediction."""
+    """Response model for batch feedback prediction."""
     predictions: List[PredictionResponse]
     total: int
-    
+
     class Config:
         json_schema_extra = {
             "example": {
                 "predictions": [
                     {
                         "is_spam": False,
-                        "reason_category": "Product Quality Issue",
-                        "severity_score": 0.9,
-                        "confidence": 0.85
+                        "sentiment_type": "Positive",
+                        "issue_category": None,
+                        "severity_score": None,
+                        "satisfaction_category": "Product Appreciation",
+                        "goodwill_score": 0.9,
+                        "confidence": 0.87
                     }
                 ],
                 "total": 1
@@ -136,16 +154,16 @@ class GoogleSheetsUpdateRequest(BaseModel):
     """Request model for updating Google Sheets with predictions."""
     spreadsheet_id: str = Field(..., description="Google Sheets spreadsheet ID")
     worksheet_name: Optional[str] = Field(None, description="Worksheet name (default: first sheet)")
-    data: List[Dict[str, str]] = Field(..., description="List of data rows with 'reason' field")
-    
+    data: List[Dict[str, str]] = Field(..., description="List of data rows with 'customer_feedback' field")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "spreadsheet_id": "1ABC123xyz...",
-                "worksheet_name": "Returns",
+                "worksheet_name": "Customer_Feedback_Data",
                 "data": [
-                    {"order_id": "ORD001", "reason": "item arrived broken"},
-                    {"order_id": "ORD002", "reason": "wrong size"}
+                    {"order_id": "ORD001", "customer_feedback": "Excellent product quality!"},
+                    {"order_id": "ORD002", "customer_feedback": "Product arrived broken."}
                 ]
             }
         }
@@ -161,16 +179,18 @@ class GoogleSheetsUpdateResponse(BaseModel):
 
 class GoogleSheetsProcessRequest(BaseModel):
     """Request model for processing existing Google Sheets data."""
-    spreadsheet_id: str = Field(..., description="Google Sheets spreadsheet ID")
-    worksheet_name: Optional[str] = Field(None, description="Worksheet name (default: first sheet)")
-    reason_column: str = Field("reason", description="Name of column containing return reasons")
-    
+    spreadsheet_id:  str            = Field(..., description="Google Sheets spreadsheet ID")
+    worksheet_name:  Optional[str]  = Field(None, description="Worksheet name (default: first sheet)")
+    feedback_column: str            = Field("Customer_Feedback", description="Name of column containing customer feedback")
+    rating_column:   Optional[str]  = Field(None, description="Optional column name for star ratings")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "spreadsheet_id": "1ABC123xyz...",
-                "worksheet_name": "Returns",
-                "reason_column": "reason"
+                "worksheet_name": "Customer_Feedback_Data",
+                "feedback_column": "Customer_Feedback",
+                "rating_column": "Rating (1-5)"
             }
         }
 
@@ -182,16 +202,20 @@ async def startup_event():
     
     # Load NLP model
     try:
-        if MODEL_PATH.exists() and VECTORIZER_PATH.exists():
-            logger.info("Loading trained model...")
+        neg_ok = NEG_MODEL_PATH.exists() and NEG_VECTORIZER_PATH.exists()
+        pos_ok = POS_MODEL_PATH.exists() and POS_VECTORIZER_PATH.exists()
+        if neg_ok and pos_ok:
+            logger.info("Loading trained feedback classifier models...")
             classifier = NLPClassifier(
-                model_path=str(MODEL_PATH),
-                vectorizer_path=str(VECTORIZER_PATH)
+                neg_model_path      = str(NEG_MODEL_PATH),
+                neg_vectorizer_path = str(NEG_VECTORIZER_PATH),
+                pos_model_path      = str(POS_MODEL_PATH),
+                pos_vectorizer_path = str(POS_VECTORIZER_PATH),
             )
-            logger.info("Model loaded successfully")
+            logger.info("Models loaded successfully")
         else:
-            logger.warning(f"Model files not found at {MODEL_DIR}")
-            logger.warning("Please train the model first using train.py")
+            logger.warning(f"One or more model files not found in {MODEL_DIR}")
+            logger.warning("Please train the model first using: python train.py")
             classifier = None
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
@@ -215,8 +239,8 @@ async def startup_event():
 async def root():
     """Root endpoint with API information."""
     return {
-        "message": "NLP Return Reason Classifier API",
-        "version": "1.0.0",
+        "message": "Customer Feedback Intelligence API",
+        "version": "2.0.0",
         "docs": "/docs",
         "health": "/health"
     }
@@ -228,33 +252,27 @@ async def health_check():
     return {
         "status": "healthy" if classifier else "model_not_loaded",
         "model_loaded": classifier is not None,
-        "version": "1.0.0"
+        "version": "2.0.0"
     }
 
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(request: PredictionRequest):
     """
-    Classify a single return reason text.
-    
-    Args:
-        request: PredictionRequest with return_reason text
-        
-    Returns:
-        PredictionResponse with classification results
+    Classify a single customer feedback entry.
+
+    Returns sentiment type, issue category + severity score (negative),
+    or satisfaction category + goodwill score (positive).
     """
     if classifier is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model not loaded. Please train the model first."
+            detail="Model not loaded. Please train the model first: python train.py"
         )
-    
+
     try:
-        # Get prediction
-        result = classifier.predict(request.return_reason)
-        
+        result = classifier.predict(request.customer_feedback, request.rating)
         return PredictionResponse(**result)
-    
     except Exception as e:
         logger.error(f"Prediction error: {e}")
         raise HTTPException(
@@ -266,31 +284,21 @@ async def predict(request: PredictionRequest):
 @app.post("/predict/batch", response_model=BatchPredictionResponse)
 async def predict_batch(request: BatchPredictionRequest):
     """
-    Classify multiple return reason texts in batch.
-    
-    Args:
-        request: BatchPredictionRequest with list of return_reasons
-        
-    Returns:
-        BatchPredictionResponse with all predictions
+    Classify multiple customer feedback entries in batch.
     """
     if classifier is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model not loaded. Please train the model first."
+            detail="Model not loaded. Please train the model first: python train.py"
         )
-    
+
     try:
-        # Get predictions
-        results = classifier.predict_batch(request.return_reasons)
-        
-        predictions = [PredictionResponse(**result) for result in results]
-        
-        return BatchPredictionResponse(
-            predictions=predictions,
-            total=len(predictions)
+        results = classifier.predict_batch(
+            request.customer_feedbacks,
+            ratings=request.ratings,
         )
-    
+        predictions = [PredictionResponse(**r) for r in results]
+        return BatchPredictionResponse(predictions=predictions, total=len(predictions))
     except Exception as e:
         logger.error(f"Batch prediction error: {e}")
         raise HTTPException(
@@ -302,27 +310,20 @@ async def predict_batch(request: BatchPredictionRequest):
 @app.post("/predict/file")
 async def predict_file(file: UploadFile = File(...)):
     """
-    Classify return reasons from an uploaded Excel or CSV file.
-    
-    The file must contain a 'reason' column.
-    
-    Args:
-        file: Uploaded Excel (.xlsx, .xls) or CSV file
-        
-    Returns:
-        Processed file with added classification columns
+    Classify customer feedback from an uploaded Excel or CSV file.
+
+    The file should contain a 'Customer_Feedback' column (case-insensitive).
+    An optional 'Rating (1-5)' column is used when present to improve sentiment detection.
     """
     if classifier is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model not loaded. Please train the model first."
+            detail="Model not loaded. Please train the model first: python train.py"
         )
-    
+
     try:
-        # Read file content
         contents = await file.read()
-        
-        # Load into DataFrame based on file type
+
         if file.filename.endswith('.csv'):
             df = pd.read_csv(io.BytesIO(contents))
         elif file.filename.endswith(('.xlsx', '.xls')):
@@ -332,46 +333,58 @@ async def predict_file(file: UploadFile = File(...)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Unsupported file format. Please upload CSV or Excel file."
             )
-        
-        # Check if 'reason' column exists (case-insensitive)
-        reason_col = next((col for col in df.columns if col.lower() == 'reason'), None)
-        
-        if not reason_col:
+
+        # Find the feedback column (case-insensitive)
+        feedback_col = next(
+            (col for col in df.columns if col.lower() == 'customer_feedback'),
+            None
+        )
+        if not feedback_col:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The file must contain a 'reason' column."
+                detail="The file must contain a 'Customer_Feedback' column."
             )
-        
-        # Get all reasons and run batch prediction
-        reasons = df[reason_col].fillna("").astype(str).tolist()
-        results = classifier.predict_batch(reasons)
-        
-        # Add new columns
-        df['1. Category'] = [res['reason_category'] for res in results]
-        df['2. Severity'] = [round(res['severity_score'], 2) for res in results]
-        df['3. Confidence'] = [round(res.get('confidence', 0) * 100, 1) for res in results]
-        df['4. Spam'] = ['Yes' if res['is_spam'] else 'No' for res in results]
-        
-        # Prepare response file
+
+        # Find optional rating column
+        rating_col = next(
+            (col for col in df.columns if 'rating' in col.lower()),
+            None
+        )
+
+        feedbacks = df[feedback_col].fillna("").astype(str).tolist()
+        ratings   = None
+        if rating_col:
+            ratings = [
+                (int(v) if str(v).isdigit() else None)
+                for v in df[rating_col].fillna("").astype(str).tolist()
+            ]
+
+        results = classifier.predict_batch(feedbacks, ratings=ratings)
+
+        # Add output columns
+        df['1. Sentiment']             = [r['sentiment_type']        for r in results]
+        df['2. Issue_Category']        = [r['issue_category'] or ""  for r in results]
+        df['3. Severity_Score']        = [round(r['severity_score'], 2) if r['severity_score'] is not None else "" for r in results]
+        df['4. Satisfaction_Category'] = [r['satisfaction_category'] or "" for r in results]
+        df['5. Goodwill_Score']        = [round(r['goodwill_score'], 2) if r['goodwill_score'] is not None else "" for r in results]
+        df['6. Confidence']            = [f"{round(r['confidence'] * 100, 1)}%" if r['confidence'] is not None else "" for r in results]
+        df['7. Spam']                  = ['Yes' if r['is_spam'] else 'No' for r in results]
+
         output = io.BytesIO()
         if file.filename.endswith('.csv'):
             df.to_csv(output, index=False)
             media_type = "text/csv"
-            filename = f"analyzed_{file.filename}"
         else:
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False)
             media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            filename = f"analyzed_{file.filename}"
-        
+
         output.seek(0)
-        
         return StreamingResponse(
-            output,
-            media_type=media_type,
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            output, media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename=analyzed_{file.filename}"}
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -415,12 +428,14 @@ async def preprocess(text: str):
 
 @app.get("/categories")
 async def get_categories():
-    """Get list of valid classification categories and their severity scores."""
-    from app.nlp.classifier import SEVERITY_MAP
-    
+    """Get all classification categories, severity mapping, and goodwill mapping."""
+    from app.nlp.classifier import SEVERITY_MAP, GOODWILL_MAP
+
     return {
-        "categories": list(SEVERITY_MAP.keys()),
-        "severity_mapping": SEVERITY_MAP
+        "negative_categories": list(SEVERITY_MAP.keys()),
+        "positive_categories": list(GOODWILL_MAP.keys()),
+        "severity_mapping":  SEVERITY_MAP,
+        "goodwill_mapping":  GOODWILL_MAP,
     }
 
 
@@ -469,26 +484,35 @@ async def process_existing_google_sheet(request: GoogleSheetsProcessRequest):
                 detail="Sheet is empty or could not be read"
             )
         
-        # Check if reason column exists
-        if request.reason_column not in df.columns:
+        # Check if feedback column exists
+        if request.feedback_column not in df.columns:
             available_columns = ", ".join(df.columns.tolist())
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Column '{request.reason_column}' not found. Available columns: {available_columns}"
+                detail=f"Column '{request.feedback_column}' not found. Available columns: {available_columns}"
             )
-        
-        # Extract reasons and run batch prediction
-        reasons = df[request.reason_column].fillna("").astype(str).tolist()
-        logger.info(f"Processing {len(reasons)} reasons...")
-        results = classifier.predict_batch(reasons)
-        
+
+        # Extract feedbacks and optional ratings, then run batch prediction
+        feedbacks = df[request.feedback_column].fillna("").astype(str).tolist()
+        ratings   = None
+        if request.rating_column and request.rating_column in df.columns:
+            ratings = [
+                (int(v) if str(v).isdigit() else None)
+                for v in df[request.rating_column].fillna("").astype(str).tolist()
+            ]
+        logger.info(f"Processing {len(feedbacks)} feedback entries...")
+        results = classifier.predict_batch(feedbacks, ratings=ratings)
+
         # Prepare column updates
         updates = {
-            'return_category': [res['reason_category'] for res in results],
-            'return_severity': [round(res['severity_score'], 2) for res in results],
-            'return_confidence': [f"{round(res.get('confidence', 0) * 100, 1)}%" for res in results],
-            'is_spam': ['Yes' if res['is_spam'] else 'No' for res in results],
-            'processed_at': [pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')] * len(results)
+            'sentiment_type':        [r['sentiment_type']                  for r in results],
+            'issue_category':        [r['issue_category'] or ""            for r in results],
+            'severity_score':        [round(r['severity_score'], 2) if r['severity_score'] is not None else "" for r in results],
+            'satisfaction_category': [r['satisfaction_category'] or ""     for r in results],
+            'goodwill_score':        [round(r['goodwill_score'], 2) if r['goodwill_score'] is not None else "" for r in results],
+            'confidence':            [f"{round(r['confidence'] * 100, 1)}%" if r['confidence'] is not None else "" for r in results],
+            'is_spam':               ['Yes' if r['is_spam'] else 'No'       for r in results],
+            'processed_at':          [pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')] * len(results),
         }
         
         # Update columns in sheet
@@ -505,7 +529,7 @@ async def process_existing_google_sheet(request: GoogleSheetsProcessRequest):
         return GoogleSheetsUpdateResponse(
             success=True,
             rows_processed=len(df),
-            message=f"Successfully processed {len(df)} rows and added classification columns to Google Sheets",
+            message=f"Successfully processed {len(df)} feedback entries and added classification columns to Google Sheets",
             spreadsheet_url=spreadsheet_url
         )
         
@@ -548,23 +572,26 @@ async def update_google_sheets(request: GoogleSheetsUpdateRequest):
         )
     
     try:
-        # Extract reasons from data
-        reasons = [item.get('reason', '') for item in request.data]
-        
+        # Extract feedbacks from data
+        feedbacks = [item.get('customer_feedback', '') for item in request.data]
+
         # Run batch prediction
-        logger.info(f"Processing {len(reasons)} reasons...")
-        results = classifier.predict_batch(reasons)
-        
+        logger.info(f"Processing {len(feedbacks)} feedback entries...")
+        results = classifier.predict_batch(feedbacks)
+
         # Prepare data for Google Sheets update
         updates = []
-        for i, (data_item, result) in enumerate(zip(request.data, results)):
+        for data_item, result in zip(request.data, results):
             row_data = {
-                **data_item,  # Include original data
-                'Category': result['reason_category'],
-                'Severity': round(result['severity_score'], 2),
-                'Confidence': f"{round(result.get('confidence', 0) * 100, 1)}%",
-                'Is_Spam': 'Yes' if result['is_spam'] else 'No',
-                'Processed_At': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                **data_item,
+                'Sentiment_Type':        result['sentiment_type'],
+                'Issue_Category':        result['issue_category']        or "",
+                'Severity_Score':        round(result['severity_score'], 2) if result['severity_score'] is not None else "",
+                'Satisfaction_Category': result['satisfaction_category'] or "",
+                'Goodwill_Score':        round(result['goodwill_score'], 2) if result['goodwill_score'] is not None else "",
+                'Confidence':            f"{round(result['confidence'] * 100, 1)}%" if result['confidence'] is not None else "",
+                'Is_Spam':               'Yes' if result['is_spam'] else 'No',
+                'Processed_At':          pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
             }
             updates.append(row_data)
         
@@ -623,23 +650,26 @@ async def append_to_google_sheets(request: GoogleSheetsUpdateRequest):
         )
     
     try:
-        # Extract reasons from data
-        reasons = [item.get('reason', '') for item in request.data]
-        
+        # Extract feedbacks from data
+        feedbacks = [item.get('customer_feedback', '') for item in request.data]
+
         # Run batch prediction
-        logger.info(f"Processing {len(reasons)} reasons...")
-        results = classifier.predict_batch(reasons)
-        
+        logger.info(f"Processing {len(feedbacks)} feedback entries...")
+        results = classifier.predict_batch(feedbacks)
+
         # Prepare rows for appending
         updates = []
-        for i, (data_item, result) in enumerate(zip(request.data, results)):
+        for data_item, result in zip(request.data, results):
             row_data = {
                 **data_item,
-                'Category': result['reason_category'],
-                'Severity': round(result['severity_score'], 2),
-                'Confidence': f"{round(result.get('confidence', 0) * 100, 1)}%",
-                'Is_Spam': 'Yes' if result['is_spam'] else 'No',
-                'Processed_At': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                'Sentiment_Type':        result['sentiment_type'],
+                'Issue_Category':        result['issue_category']        or "",
+                'Severity_Score':        round(result['severity_score'], 2) if result['severity_score'] is not None else "",
+                'Satisfaction_Category': result['satisfaction_category'] or "",
+                'Goodwill_Score':        round(result['goodwill_score'], 2) if result['goodwill_score'] is not None else "",
+                'Confidence':            f"{round(result['confidence'] * 100, 1)}%" if result['confidence'] is not None else "",
+                'Is_Spam':               'Yes' if result['is_spam'] else 'No',
+                'Processed_At':          pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
             }
             updates.append(row_data)
         
