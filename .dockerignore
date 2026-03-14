@@ -1,0 +1,28 @@
+# Git and local tooling
+.git
+.gitignore
+.vscode
+.idea
+
+# Python cache and virtualenvs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Test and notebook artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Logs and local env files
+*.log
+.env
+
+# OS files
+.DS_Store
+Thumbs.db

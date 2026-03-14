@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ris-api
+    env: docker
+    plan: free
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: GOOGLE_CREDENTIALS_PATH
+        value: /etc/secrets/google-credentials.json

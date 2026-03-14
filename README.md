@@ -142,6 +142,50 @@ The API will be available at:
 - **Interactive Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
+## Docker
+
+### Build Docker Image
+
+Use the PowerShell helper:
+
+```powershell
+./build_docker_image.ps1 -ImageName ris-api -Tag latest
+```
+
+Or run Docker directly:
+
+```bash
+docker build -t ris-api:latest .
+```
+
+### Run Docker Container
+
+```bash
+docker run --rm -p 8000:8000 ris-api:latest
+```
+
+API endpoints inside Docker:
+- **API**: http://localhost:8000
+- **Docs**: http://localhost:8000/docs
+
+## Render Auto Deploy
+
+This repository now includes a Render Blueprint file: `render.yaml`.
+
+### What it does
+
+- Deploys a **Docker web service** named `ris-api`
+- Enables **autoDeploy** so every new push triggers deployment
+- Sets health checks to `/health`
+
+### Setup on Render
+
+1. Push this repository to GitHub (including `Dockerfile` and `render.yaml`).
+2. In Render, choose **New +** -> **Blueprint**.
+3. Select this repository.
+4. Confirm the generated service settings and create the service.
+5. Add required secrets/env vars in Render dashboard (for example Google credentials file/paths if used).
+
 ## 📡 API Usage
 
 ### Available Endpoints
