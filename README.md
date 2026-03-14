@@ -1,823 +1,292 @@
-# NLP Return Reason Classifier
+# Customer Feedback Intelligence API
 
-A production-ready lightweight NLP system for classifying customer return reasons using classical machine learning. Built with NLTK, TF-IDF, and Logistic Regression.
+Production-ready NLP system for classifying customer feedback using classical machine learning.
 
-## 🎯 Overview
+It follows a dual-path pipeline:
+- Negative sentiment -> issue category + severity score
+- Positive sentiment -> satisfaction category + goodwill score
 
-This system classifies customer return reasons into categories, detects spam inputs, assigns severity scores, and integrates with Google Sheets for automated batch processing. It's designed to be fast, explainable, and suitable for real-time API usage.
+The service also includes spam detection, file-based batch analysis, and Google Sheets integration.
 
-### Key Features
+## Overview
 
-- ✅ **Classical NLP** - NLTK-based text preprocessing
-- ✅ **Fast Classification** - TF-IDF + Logistic Regression (<50ms per request)
-- ✅ **Spam Detection** - Rule-based spam filtering
-- ✅ **Severity Scoring** - Automatic severity assignment
-- ✅ **REST API** - FastAPI endpoints for predictions
-- ✅ **Google Sheets Integration** - Automated batch processing
-- ✅ **Production Ready** - Clean, modular, well-documented code
+Core stack:
+- FastAPI
+- NLTK preprocessing
+- TF-IDF + Logistic Regression
+- pandas for batch/file processing
+- gspread for Google Sheets
 
-## 📊 Classification Categories
+API version: 2.0.0
 
-| Category | Severity Score | Description |
-|----------|---------------|-------------|
-| Product Quality Issue | 0.9 (High) | Defects, poor quality, broken items |
-| Expiry Issue | 0.9 (High) | Expired products |
-| Packaging Issue | 0.6 (Medium) | Damaged or poor packaging |
-| Wrong Item | 0.6 (Medium) | Incorrect product sent |
-| Customer Preference | 0.3 (Low) | Changed mind, personal reasons |
-| Other | 0.2 (Low) | Miscellaneous reasons |
+## Current Pipeline
 
-## 🏗️ Architecture
+For each input:
+1. Spam detection (rule-based)
+2. Sentiment detection (text-first, rating used as tiebreaker)
+3. If Negative: predict issue category, map to severity score
+4. If Positive: predict satisfaction category, map to goodwill score
+5. If Neutral: categories and scores remain null
 
+### Negative categories (severity)
+- Product Quality Issue: 0.9
+- Expiry Issue: 0.9
+- Packaging Issue: 0.6
+- Wrong Item: 0.6
+- Customer Preference: 0.3
+- Other: 0.2
+- Uncertain: 0.1
+
+### Positive categories (goodwill)
+- Product Appreciation: 0.9
+- Overall Positive Experience: 0.85
+- Service Satisfaction: 0.8
+- Packaging Praise: 0.7
+- General Positive: 0.6
+
+## Project Structure
+
+```text
+NLP-Project/
+  app/
+    main.py
+    models/
+      neg_model.pkl
+      neg_tfidf.pkl
+      pos_model.pkl
+      pos_tfidf.pkl
+    nlp/
+      classifier.py
+      preprocess.py
+      spam_detector.py
+    services/
+      sheets_service.py
+  training_data/
+    feedback_training_data.csv
+  batch_processor.py
+  train.py
+  start_server.py
+  Dockerfile
+  render.yaml
 ```
-project_root/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI application
-│   ├── nlp/
-│   │   ├── __init__.py
-│   │   ├── preprocess.py       # Text preprocessing
-│   │   ├── spam_detector.py    # Spam detection
-│   │   └── classifier.py       # TF-IDF + Logistic Regression
-│   ├── services/
-│   │   ├── __init__.py
-│   │   └── sheets_service.py   # Google Sheets integration
-│   └── models/
-│       ├── model.pkl           # Trained model (generated)
-│       └── tfidf.pkl           # Trained vectorizer (generated)
-├── training_data/
-│   └── sample_data.csv         # Sample training dataset
-├── train.py                    # Model training script
-├── batch_processor.py          # Batch processing script
-├── requirements.txt            # Python dependencies
-├── .env.example               # Environment variables template
-└── README.md                  # This file
-```
 
-## 🚀 Quick Start
+## Setup
 
 ### Prerequisites
-
 - Python 3.11+
 - pip
+- Optional: Docker Desktop
 
-### Installation
+### Install
 
-1. **Clone or create the project directory**
-
-```bash
+```powershell
 cd "d:\My Projects\NLP-Project"
-```
-
-2. **Create virtual environment**
-
-```bash
-python -m venv venv
-```
-
-3. **Activate virtual environment**
-
-Windows:
-```bash
-venv\Scripts\activate
-```
-
-Linux/Mac:
-```bash
-source venv/bin/activate
-```
-
-4. **Install dependencies**
-
-```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-5. **Download NLTK resources**
+### Train Models
 
-The first run will automatically download required NLTK resources (punkt, stopwords, wordnet).
-
-### Training the Model
-
-Train the classifier using the provided sample dataset:
-
-```bash
+```powershell
 python train.py
 ```
 
-This will:
-- Load training data from `training_data/sample_data.csv`
-- Preprocess text using NLTK
-- Train TF-IDF vectorizer and Logistic Regression model
-- Save models to `app/models/`
-- Display training metrics and test predictions
+Expected generated artifacts:
+- app/models/neg_model.pkl
+- app/models/neg_tfidf.pkl
+- app/models/pos_model.pkl
+- app/models/pos_tfidf.pkl
 
-**Expected output:**
-```
-Loading training data from: training_data\sample_data.csv
-Loaded 75 training samples
-...
-Training complete. Accuracy: 0.95+
-✓ Training complete!
-```
+### Run API
 
-### Running the API Server
-
-If you want a short, plain-English guide (run server + endpoints + example responses), see: [RUN_SERVER_AND_API.md](RUN_SERVER_AND_API.md)
-
-Start the FastAPI server:
-
-```bash
+```powershell
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Or:
 
-```bash
-python app/main.py
-```
-
-The API will be available at:
-- **API**: http://localhost:8000
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-## Docker
-
-### Build Docker Image
-
-Use the PowerShell helper:
-
 ```powershell
-./build_docker_image.ps1 -ImageName ris-api -Tag latest
+python start_server.py
 ```
 
-Or run Docker directly:
+Available URLs:
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-```bash
-docker build -t ris-api:latest .
-```
+## API Endpoints
 
-### Run Docker Container
+- GET /
+- GET /health
+- GET /categories
+- POST /predict
+- POST /predict/batch
+- POST /predict/file
+- POST /preprocess
+- POST /sheets/process
+- POST /sheets/update
+- POST /sheets/append
 
-```bash
-docker run --rm -p 8000:8000 ris-api:latest
-```
+## Request and Response Examples
 
-API endpoints inside Docker:
-- **API**: http://localhost:8000
-- **Docs**: http://localhost:8000/docs
+### Health
 
-## Render Auto Deploy
-
-This repository now includes a Render Blueprint file: `render.yaml`.
-
-### What it does
-
-- Deploys a **Docker web service** named `ris-api`
-- Enables **autoDeploy** so every new push triggers deployment
-- Sets health checks to `/health`
-
-### Setup on Render
-
-1. Push this repository to GitHub (including `Dockerfile` and `render.yaml`).
-2. In Render, choose **New +** -> **Blueprint**.
-3. Select this repository.
-4. Confirm the generated service settings and create the service.
-5. Add required secrets/env vars in Render dashboard (for example Google credentials file/paths if used).
-
-## 📡 API Usage
-
-### Available Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | API information |
-| GET | `/health` | Health check and model status |
-| GET | `/categories` | Get all classification categories |
-| POST | `/predict` | Classify single return reason |
-| POST | `/predict/batch` | Classify multiple return reasons |
-| POST | `/predict/file` | Upload and process CSV/Excel file |
-| POST | `/preprocess` | Test text preprocessing |
-| POST | `/sheets/process` | **Process existing Google Sheet** (recommended) |
-| POST | `/sheets/update` | Create/replace sheet with custom data |
-| POST | `/sheets/append` | Append custom data to existing sheet |
-
-### Health Check
-
-```bash
+```http
 GET /health
 ```
 
-Response:
 ```json
 {
   "status": "healthy",
   "model_loaded": true,
-  "version": "1.0.0"
+  "version": "2.0.0"
 }
 ```
 
 ### Single Prediction
 
-```bash
+```http
 POST /predict
 Content-Type: application/json
+```
 
+```json
 {
-  "return_reason": "item arrived broken"
+  "customer_feedback": "Excellent product quality and very useful in daily life.",
+  "rating": 5
 }
 ```
 
-Response:
 ```json
 {
   "is_spam": false,
-  "reason_category": "Product Quality Issue",
-  "severity_score": 0.9,
-  "confidence": 0.85
+  "sentiment_type": "Positive",
+  "issue_category": null,
+  "severity_score": null,
+  "satisfaction_category": "Product Appreciation",
+  "goodwill_score": 0.9,
+  "confidence": 0.87
 }
 ```
 
 ### Batch Prediction
 
-```bash
+```http
 POST /predict/batch
 Content-Type: application/json
-
-{
-  "return_reasons": [
-    "item arrived broken",
-    "wrong product sent",
-    "no reason"
-  ]
-}
 ```
 
-Response:
 ```json
 {
-  "predictions": [
-    {
-      "is_spam": false,
-      "reason_category": "Product Quality Issue",
-      "severity_score": 0.9,
-      "confidence": 0.85
-    },
-    {
-      "is_spam": false,
-      "reason_category": "Wrong Item",
-      "severity_score": 0.6,
-      "confidence": 0.78
-    },
-    {
-      "is_spam": true,
-      "reason_category": "Other",
-      "severity_score": 0.0
-    }
+  "customer_feedbacks": [
+    "Product arrived completely broken.",
+    "Delivery was fast and excellent.",
+    "no reason"
   ],
-  "total": 3
+  "ratings": [1, 5, null]
 }
 ```
 
-### Get Categories
+### Categories
 
-```bash
+```http
 GET /categories
 ```
 
-Response:
-```json
-{
-  "categories": [
-    "Product Quality Issue",
-    "Expiry Issue",
-    "Packaging Issue",
-    "Wrong Item",
-    "Customer Preference",
-    "Other"
-  ],
-  "severity_mapping": {
-    "Product Quality Issue": 0.9,
-    "Expiry Issue": 0.9,
-    "Packaging Issue": 0.6,
-    "Wrong Item": 0.6,
-    "Customer Preference": 0.3,
-    "Other": 0.2
-  }
-}
+Response includes:
+- negative_categories
+- positive_categories
+- severity_mapping
+- goodwill_mapping
+
+### File Prediction
+
+Upload CSV or Excel to /predict/file.
+
+Required column:
+- Customer_Feedback (case-insensitive match)
+
+Optional rating column:
+- any column name containing rating (for example Rating (1-5))
+
+Returned file includes these columns:
+- 1. Sentiment
+- 2. Issue_Category
+- 3. Severity_Score
+- 4. Satisfaction_Category
+- 5. Goodwill_Score
+- 6. Confidence
+- 7. Spam
+
+## Batch Processor CLI
+
+CSV mode:
+
+```powershell
+python batch_processor.py --mode csv --csv-input training_data/test_input.csv --csv-output analyzed.csv --column Customer_Feedback --rating-column "Rating (1-5)"
 ```
 
-### Preprocess Text (Debug)
+Google Sheets mode:
 
-```bash
-POST /preprocess?text=Item%20was%20BROKEN!!!
+```powershell
+python batch_processor.py --mode sheets --spreadsheet-id YOUR_SHEET_ID --worksheet-name Sheet1 --column Customer_Feedback --rating-column "Rating (1-5)"
 ```
 
-Response:
-```json
-{
-  "original": "Item was BROKEN!!!",
-  "preprocessed": "item broken",
-  "is_spam": false
-}
-```
+## Google Sheets
 
-## 📊 Google Sheets Integration
-
-### Setup Google Sheets API
-
-1. **Create Google Cloud Project**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project
-
-2. **Enable APIs**
-   - Enable Google Sheets API
-   - Enable Google Drive API
-
-3. **Create Service Account**
-   - Go to "IAM & Admin" > "Service Accounts"
-   - Create service account
-   - Download JSON credentials file
-
-4. **Configure Credentials**
-   - Create `credentials` directory in project root
-   - Save JSON file as `credentials/service_account.json`
-   - Update `.env` file:
-     ```
-     GOOGLE_CREDENTIALS_PATH=./credentials/service_account.json
-     ```
-
-5. **Share Spreadsheet**
-   - Open your Google Sheet
-   - Click "Share"
-   - Add service account email (found in JSON file)
-   - Give "Editor" permissions
-
-### Batch Processing
-
-#### Process Google Sheets
-
-```bash
-python batch_processor.py --mode sheets --spreadsheet-id YOUR_SPREADSHEET_ID --worksheet-name "Sheet1" --column "return_reason"
-```
-
-#### Process Local CSV
-
-```bash
-python batch_processor.py --mode csv --csv-input input.csv --csv-output output.csv --column "return_reason"
-```
-
-### Expected Sheet Format
-
-**Input:**
-| return_reason |
-|--------------|
-| Item arrived broken |
-| Wrong product sent |
-| no reason |
-
-**Output:**
-| return_reason | reason_category | severity_score | is_spam |
-|--------------|----------------|----------------|---------|
-| Item arrived broken | Product Quality Issue | 0.9 | FALSE |
-| Wrong product sent | Wrong Item | 0.6 | FALSE |
-| no reason | Other | 0.0 | TRUE |
-
-### Real-Time API Endpoints
-
-The API now includes dedicated endpoints for real-time Google Sheets updates:
-
-#### POST /sheets/process - Process Existing Sheet (Recommended ⭐)
-
-**The easiest way to process your existing Google Sheets!** Simply provide your spreadsheet ID and worksheet name. The API will:
-1. Read your existing sheet data
-2. Find the "reason" column
-3. Classify all return reasons
-4. Add new columns with results: `return_category`, `return_severity`, `return_confidence`, `is_spam`, `processed_at`
-
-**Request:**
-```json
-{
-  "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
-  "worksheet_name": "Returns",
-  "reason_column": "reason"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "rows_processed": 18,
-  "message": "Successfully processed 18 rows and added classification columns to Google Sheets",
-  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg"
-}
-```
-
-**Your sheet before:**
-| fact_id | product | category | brand | store | city | date | reason | qty_sold | qty_returned |
-|---------|---------|----------|-------|-------|------|------|--------|----------|--------------|
-| 1 | Rice 5kg | Grocery | BrandA | Store A | Kolkata | 2025-01-01 | Damaged Product | 100 | 10 |
-| 2 | Wheat Flour | Grocery | BrandB | Store B | Kolkata | 2025-01-02 | Expired Product | 80 | 20 |
-
-**Your sheet after:**
-| ... | reason | ... | return_category | return_severity | return_confidence | is_spam | processed_at |
-|-----|--------|-----|----------------|-----------------|-------------------|---------|--------------|
-| ... | Damaged Product | ... | Product Quality Issue | 0.9 | 85.0% | No | 2025-01-15 14:30:00 |
-| ... | Expired Product | ... | Expiry Issue | 0.9 | 92.0% | No | 2025-01-15 14:30:01 |
-
-**Example using cURL:**
-```bash
-curl -X POST "http://localhost:8000/sheets/process" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
-    "worksheet_name": "Returns",
-    "reason_column": "reason"
-  }'
-```
-
-**Example using Python:**
-```python
-import requests
-
-response = requests.post(
-    "http://localhost:8000/sheets/process",
-    json={
-        "spreadsheet_id": "1qaLtpbxOWbTyfonKmEqCsRYqnvfQp3NZ5Xsk7JlIEcg",
-        "worksheet_name": "Returns",
-        "reason_column": "reason"
-    }
-)
-print(response.json())
-```
-
----
-
-#### POST /sheets/update - Create/Replace Sheet with Custom Data
-
-Processes data and writes results to Google Sheets (replaces existing content). Use this when you want to send custom formatted data.
-
-**Request:**
-```json
-{
-  "spreadsheet_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
-  "worksheet_name": "Returns",
-  "data": [
-    {"order_id": "ORD001", "reason": "item arrived broken"},
-    {"order_id": "ORD002", "reason": "wrong size"}
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "rows_processed": 2,
-  "message": "Successfully processed and updated 2 rows in Google Sheets",
-  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/..."
-}
-```
-
-#### POST /sheets/append - Append to Sheet
-
-Processes data and appends results to existing sheet data.
-
-**Example using cURL:**
-```bash
-curl -X POST "http://localhost:8000/sheets/append" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "spreadsheet_id": "YOUR_SPREADSHEET_ID",
-    "worksheet_name": "Returns",
-    "data": [{"order_id": "ORD001", "reason": "item arrived broken"}]
-  }'
-```
-
-**Example using Python:**
-```python
-import requests
-
-response = requests.post(
-    "http://localhost:8000/sheets/update",
-    json={
-        "spreadsheet_id": "YOUR_SPREADSHEET_ID",
-        "data": [
-            {"order_id": "ORD001", "reason": "item arrived broken"}
-        ]
-    }
-)
-print(response.json())
-```
-
-**📖 For detailed setup instructions, see [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md)**
-
-**🧪 To test your setup, run:**
-```bash
-python test_google_sheets.py
-```
-
-## 🧪 Testing
-
-### Test NLP Preprocessing
-
-```bash
-python app/nlp/preprocess.py
-```
-
-### Test Spam Detection
-
-```bash
-python app/nlp/spam_detector.py
-```
-
-### Test Classifier
-
-```bash
-python app/nlp/classifier.py
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create `.env` file (copy from `.env.example`):
+Set credentials path in .env:
 
 ```env
 GOOGLE_CREDENTIALS_PATH=./credentials/service_account.json
-API_HOST=0.0.0.0
-API_PORT=8000
 ```
 
-### Model Configuration
+Then use:
+- POST /sheets/process to enrich existing rows
+- POST /sheets/update to write/replace processed rows
+- POST /sheets/append to append processed rows
 
-Adjust hyperparameters in `train.py` or when initializing `NLPClassifier`:
+## Docker
 
-```python
-classifier = NLPClassifier(
-    max_features=1000,      # Max TF-IDF features
-    ngram_range=(1, 2)      # Unigrams and bigrams
-)
+Build image using helper script:
+
+```powershell
+./build_docker_image.ps1 -ImageName ris-api -Tag latest
 ```
 
-## 📝 Training with Custom Data
+Or directly:
 
-### Prepare Your Dataset
-
-Create a CSV file with two columns:
-
-```csv
-return_reason,category
-"Product is broken",Product Quality Issue
-"Wrong item sent",Wrong Item
-"Already expired",Expiry Issue
+```powershell
+docker build -t ris-api:latest .
 ```
 
-### Update Training Script
+Run container:
 
-Modify `TRAINING_DATA_PATH` in `train.py`:
-
-```python
-TRAINING_DATA_PATH = Path("path/to/your/data.csv")
+```powershell
+docker run --rm -p 8000:8000 ris-api:latest
 ```
 
-### Run Training
+## Render Auto Deploy
 
-```bash
-python train.py
-```
+Repository contains a Render Blueprint file: render.yaml.
 
-## 🎯 NLP Pipeline Details
+Current blueprint:
+- Web service name: ris-api
+- Environment: docker
+- Auto deploy: true
+- Health check: /health
 
-### Preprocessing Steps
+Setup:
+1. Push branch to GitHub.
+2. In Render select New + -> Blueprint.
+3. Select this repository.
+4. Confirm service settings and create.
+5. Configure environment variables and secrets in Render.
 
-1. **Lowercase conversion**
-2. **Punctuation removal**
-3. **Number removal**
-4. **Tokenization** (NLTK word_tokenize)
-5. **Stopword removal** (English stopwords)
-6. **Lemmatization** (WordNet lemmatizer)
-7. **Short token filtering** (min length: 2)
+## Notes
 
-### Spam Detection Rules
+- If health reports model_not_loaded, run python train.py first.
+- Google Sheets features are optional and require valid service account credentials.
+- File upload endpoints require python-multipart (already included in requirements.txt).
 
-- Empty or whitespace only
-- Too short text (< 3 chars)
-- Exact matches: "no reason", "none", "return", "n/a", etc.
-- Spam substrings: "zzz", "asdf", "test", etc.
-- Repetitive characters (>70% same char)
-- Only special characters (no letters)
 
-### Classification Model
-
-- **Vectorization**: TF-IDF with unigrams and bigrams
-- **Algorithm**: Logistic Regression with balanced class weights
-- **Features**: Top 1000 TF-IDF features
-- **Performance**: ~95% accuracy on sample dataset
-
-## 🚀 Performance
-
-- **Inference Speed**: <50ms per request
-- **Memory Usage**: ~100MB (model + dependencies)
-- **Scalability**: Can handle 5000+ rows easily
-- **No GPU Required**: Runs on CPU efficiently
-
-## 🔌 Integration Examples
-
-### Python Client
-
-```python
-import requests
-
-response = requests.post(
-    "http://localhost:8000/predict",
-    json={"return_reason": "item arrived broken"}
-)
-result = response.json()
-print(result)
-```
-
-### cURL
-
-```bash
-curl -X POST "http://localhost:8000/predict" \
-  -H "Content-Type: application/json" \
-  -d '{"return_reason": "item arrived broken"}'
-```
-
-### n8n Integration
-
-1. Add HTTP Request node
-2. Method: POST
-3. URL: `http://localhost:8000/predict/batch`
-4. Body: JSON with `return_reasons` array
-5. Parse response
-
-## 🛠️ Extending the System
-
-### Add New Categories
-
-1. Update `SEVERITY_MAP` in `app/nlp/classifier.py`
-2. Add training samples to CSV
-3. Retrain model: `python train.py`
-
-### Customize Preprocessing
-
-Modify `preprocess_text()` in `app/nlp/preprocess.py`:
-
-```python
-processed = preprocess_text(
-    text,
-    lowercase=True,
-    remove_punct=True,
-    remove_nums=True,
-    remove_stops=True,
-    lemmatize=True,
-    min_token_length=2
-)
-```
-
-### Add Custom Spam Patterns
-
-Update `SPAM_EXACT_MATCHES` or `SPAM_SUBSTRINGS` in `app/nlp/spam_detector.py`.
-
-## 📦 Deployment
-
-### Docker (Optional)
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-# Download NLTK resources
-RUN python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4')"
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-Build and run:
-```bash
-docker build -t nlp-classifier .
-docker run -p 8000:8000 nlp-classifier
-```
-
-### Cloud Deployment
-
-Deploy to any platform supporting Python:
-- **AWS**: EC2, ECS, Lambda (with API Gateway)
-- **Azure**: App Service, Container Instances
-- **GCP**: Cloud Run, Compute Engine
-- **Heroku**: Web dyno
-
-## 📊 Monitoring
-
-Add logging middleware in `app/main.py`:
-
-```python
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    duration = time.time() - start_time
-    logger.info(f"{request.method} {request.url.path} - {duration:.3f}s")
-    return response
-```
-
-## 🤝 Contributing
-
-### Code Style
-
-- Follow PEP 8
-- Use type hints
-- Add docstrings
-- Run black formatter: `black .`
-
-### Testing
-
-```bash
-pytest
-```
-
-## 📄 License
-
-This project is provided as-is for educational and commercial use.
-
-## 🙋 Support
-
-For issues or questions:
-1. Check API docs at `/docs`
-2. Review logs for error messages
-3. Validate training data format
-4. Ensure NLTK resources are downloaded
-
-## 🎓 Technical Details
-
-### Dependencies
-
-- **fastapi**: Modern web framework
-- **uvicorn**: ASGI server
-- **nltk**: NLP preprocessing
-- **scikit-learn**: ML algorithms
-- **pandas**: Data manipulation
-- **gspread**: Google Sheets API
-- **google-auth**: Authentication
-- **joblib**: Model persistence
-
-### System Requirements
-
-- **Python**: 3.11+
-- **RAM**: 512MB minimum
-- **Disk**: 200MB for dependencies + models
-- **OS**: Windows, Linux, macOS
-
-## 🔍 Troubleshooting
-
-### NLTK Resources Not Found
-
-```bash
-python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4')"
-```
-
-### Model Not Loading
-
-Ensure you've trained the model:
-```bash
-python train.py
-```
-
-### Google Sheets Authentication Failure
-
-1. Verify credentials path in `.env`
-2. Check service account has access to sheet
-3. Ensure APIs are enabled in Google Cloud
-
-### Import Errors
-
-Ensure virtual environment is activated:
-```bash
-venv\Scripts\activate  # Windows
-pip install -r requirements.txt
-```
-
-## 📈 Future Enhancements
-
-- [ ] Multi-language support
-- [ ] Confidence threshold tuning
-- [ ] Model versioning
-- [ ] A/B testing framework
-- [ ] Real-time monitoring dashboard
-- [ ] Automated retraining pipeline
-
----
-
-**Built with ❤️ using Classical NLP + Machine Learning**
