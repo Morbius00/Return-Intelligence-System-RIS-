@@ -285,7 +285,7 @@ Setup:
 
 ## Notes
 
-- If health reports model_not_loaded, run python train.py first.
+- On startup, the API auto-trains model artefacts from training_data/feedback_training_data.csv if model files are missing.
 - Google Sheets features are optional and require valid service account credentials.
 - File upload endpoints require python-multipart (already included in requirements.txt).
 

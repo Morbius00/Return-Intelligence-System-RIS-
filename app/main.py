@@ -55,12 +55,58 @@ NEG_MODEL_PATH      = MODEL_DIR / "neg_model.pkl"
 NEG_VECTORIZER_PATH = MODEL_DIR / "neg_tfidf.pkl"
 POS_MODEL_PATH      = MODEL_DIR / "pos_model.pkl"
 POS_VECTORIZER_PATH = MODEL_DIR / "pos_tfidf.pkl"
+TRAINING_DATA_PATH  = Path(__file__).parent.parent / "training_data" / "feedback_training_data.csv"
 
 # Global classifier instance
 classifier: Optional[NLPClassifier] = None
 
 # Global Google Sheets service instance
 sheets_service: Optional[GoogleSheetsService] = None
+
+
+def _load_classifier_from_disk() -> Optional[NLPClassifier]:
+    """Load persisted classifier artefacts if all required files are present."""
+    neg_ok = NEG_MODEL_PATH.exists() and NEG_VECTORIZER_PATH.exists()
+    pos_ok = POS_MODEL_PATH.exists() and POS_VECTORIZER_PATH.exists()
+
+    if not (neg_ok and pos_ok):
+        return None
+
+    logger.info("Loading trained feedback classifier models...")
+    return NLPClassifier(
+        neg_model_path=str(NEG_MODEL_PATH),
+        neg_vectorizer_path=str(NEG_VECTORIZER_PATH),
+        pos_model_path=str(POS_MODEL_PATH),
+        pos_vectorizer_path=str(POS_VECTORIZER_PATH),
+    )
+
+
+def _train_models_from_csv() -> bool:
+    """Train and persist models from training CSV when artefacts are missing."""
+    if not TRAINING_DATA_PATH.exists():
+        logger.warning(f"Training data not found at {TRAINING_DATA_PATH}")
+        return False
+
+    try:
+        # Import lazily to avoid startup overhead when models already exist.
+        from train import load_training_data, validate_categories, train_model
+
+        logger.info(f"Model artefacts missing. Training from {TRAINING_DATA_PATH}...")
+        texts, sentiments, categories = load_training_data(TRAINING_DATA_PATH)
+        validate_categories(sentiments, categories)
+
+        trained_classifier = train_model(texts, sentiments, categories)
+        trained_classifier.save_models(
+            neg_model_path=str(NEG_MODEL_PATH),
+            neg_vectorizer_path=str(NEG_VECTORIZER_PATH),
+            pos_model_path=str(POS_MODEL_PATH),
+            pos_vectorizer_path=str(POS_VECTORIZER_PATH),
+        )
+        logger.info("Model training completed and artefacts were saved.")
+        return True
+    except Exception as e:
+        logger.error(f"Automatic model training failed: {e}", exc_info=True)
+        return False
 
 
 # Pydantic models for API
@@ -202,21 +248,16 @@ async def startup_event():
     
     # Load NLP model
     try:
-        neg_ok = NEG_MODEL_PATH.exists() and NEG_VECTORIZER_PATH.exists()
-        pos_ok = POS_MODEL_PATH.exists() and POS_VECTORIZER_PATH.exists()
-        if neg_ok and pos_ok:
-            logger.info("Loading trained feedback classifier models...")
-            classifier = NLPClassifier(
-                neg_model_path      = str(NEG_MODEL_PATH),
-                neg_vectorizer_path = str(NEG_VECTORIZER_PATH),
-                pos_model_path      = str(POS_MODEL_PATH),
-                pos_vectorizer_path = str(POS_VECTORIZER_PATH),
-            )
+        classifier = _load_classifier_from_disk()
+        if classifier is None:
+            logger.warning(f"One or more model files not found in {MODEL_DIR}")
+            if _train_models_from_csv():
+                classifier = _load_classifier_from_disk()
+
+        if classifier is not None:
             logger.info("Models loaded successfully")
         else:
-            logger.warning(f"One or more model files not found in {MODEL_DIR}")
-            logger.warning("Please train the model first using: python train.py")
-            classifier = None
+            logger.error("No trained models available; prediction endpoints will return 503.")
     except Exception as e:
         logger.error(f"Failed to load model: {e}")
         classifier = None

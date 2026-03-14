@@ -67,7 +67,8 @@ htmlcov/
 # Data
 data/
 *.csv
-!training_data/sample_data.csv
+!training_data/
+!training_data/*.csv
 
 # GCP Service Account
 credentials/

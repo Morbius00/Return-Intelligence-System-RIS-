@@ -1,0 +1,137 @@
+customer_feedback,sentiment,category
+Product arrived completely broken and unusable,Negative,Product Quality Issue
+Build quality is very poor not worth the price,Negative,Product Quality Issue
+Product stopped working after just two days,Negative,Product Quality Issue
+Material feels very cheap and of low quality,Negative,Product Quality Issue
+Found a major defect in the product upon arrival,Negative,Product Quality Issue
+Terrible quality for the price paid,Negative,Product Quality Issue
+Item has visible scratches and dents finish is poor,Negative,Product Quality Issue
+Product has manufacturing defects very disappointing,Negative,Product Quality Issue
+Quality is way below what was expected,Negative,Product Quality Issue
+The product broke on first use,Negative,Product Quality Issue
+Very poor quality control evident in the item,Negative,Product Quality Issue
+Product does not work at all defective piece,Negative,Product Quality Issue
+Build is weak and product broke easily,Negative,Product Quality Issue
+Item looks nothing like the description cheap materials,Negative,Product Quality Issue
+Product has broken parts right out of the box,Negative,Product Quality Issue
+Packaging was completely torn on arrival,Negative,Packaging Issue
+Box was damaged and the item inside was affected,Negative,Packaging Issue
+Product came in a badly crushed package,Negative,Packaging Issue
+Packaging was not secure at all,Negative,Packaging Issue
+The outer box was ripped open during shipping,Negative,Packaging Issue
+Poor packaging led to damage of the item,Negative,Packaging Issue
+No protective cushioning inside the box,Negative,Packaging Issue
+Package arrived in terrible condition,Negative,Packaging Issue
+Packaging was inadequate for the fragile item inside,Negative,Packaging Issue
+Box was crushed and product was exposed,Negative,Packaging Issue
+Received a product that was already expired,Negative,Expiry Issue
+The product expiry date has already passed,Negative,Expiry Issue
+Item will expire within the next two days,Negative,Expiry Issue
+Expiry date was barely visible on the package,Negative,Expiry Issue
+Got a product with an expired shelf life,Negative,Expiry Issue
+Shelf life of the product is already over,Negative,Expiry Issue
+Product expired last month still sent to me,Negative,Expiry Issue
+Expiration date was not visible at all,Negative,Expiry Issue
+Received a completely different product than ordered,Negative,Wrong Item
+Wrong size was delivered to me,Negative,Wrong Item
+The color is completely different from what I selected,Negative,Wrong Item
+Received someone else's order entirely,Negative,Wrong Item
+Product does not match what was shown in the description,Negative,Wrong Item
+Wrong model number was sent to me,Negative,Wrong Item
+Got a different variant not what I ordered,Negative,Wrong Item
+This is not the item I purchased,Negative,Wrong Item
+Incorrect product delivered completely different item,Negative,Wrong Item
+Wrong product in the box order mismatch,Negative,Wrong Item
+I have changed my mind about this product,Negative,Customer Preference
+Found a better alternative at another store,Negative,Customer Preference
+Product does not suit my needs anymore,Negative,Customer Preference
+I no longer need this item,Negative,Customer Preference
+Decided to go with a different product,Negative,Customer Preference
+Not what I was expecting for my requirements,Negative,Customer Preference
+Changed my decision after purchasing,Negative,Customer Preference
+Product does not fit my use case,Negative,Customer Preference
+Not satisfied with the overall purchase,Negative,Other
+Product did not meet my expectations,Negative,Other
+Disappointed with the overall experience,Negative,Other
+Would not recommend this product to anyone,Negative,Other
+Not happy with what I received,Negative,Other
+Very disappointed overall,Negative,Other
+Excellent product quality and very useful in daily life,Positive,Product Appreciation
+Good value for money satisfied with the performance,Positive,Product Appreciation
+Battery life is impressive and long-lasting,Positive,Product Appreciation
+Loved the design and build quality of the product,Positive,Product Appreciation
+Great product works exactly as described and expected,Positive,Product Appreciation
+Very happy with the quality of this product,Positive,Product Appreciation
+Outstanding performance and excellent build quality,Positive,Product Appreciation
+Product quality exceeded all my expectations,Positive,Product Appreciation
+Highly satisfied with the product features and quality,Positive,Product Appreciation
+Excellent build very sturdy and well made product,Positive,Product Appreciation
+Product performs brilliantly well worth the price,Positive,Product Appreciation
+Amazing quality product would buy again,Positive,Product Appreciation
+The product is fantastic quality is top notch,Positive,Product Appreciation
+Very durable and high quality product,Positive,Product Appreciation
+Totally satisfied with the product quality and performance,Positive,Product Appreciation
+Delivery was fast and product works perfectly,Positive,Service Satisfaction
+Quick delivery and great customer service experience,Positive,Service Satisfaction
+Very satisfied with the prompt and reliable service,Positive,Service Satisfaction
+Fast delivery and excellent customer support,Positive,Service Satisfaction
+Excellent service product arrived ahead of schedule,Positive,Service Satisfaction
+Smooth transaction and very fast shipping,Positive,Service Satisfaction
+Order arrived on time and service was great,Positive,Service Satisfaction
+Wonderful service experience quick and efficient delivery,Positive,Service Satisfaction
+Outstanding delivery service very impressed,Positive,Service Satisfaction
+Great communication and super fast shipping,Positive,Service Satisfaction
+Product was very well packaged on arrival,Positive,Packaging Praise
+Excellent packaging item arrived in perfect condition,Positive,Packaging Praise
+Very secure packaging loved the presentation,Positive,Packaging Praise
+Well packed product with good protective materials,Positive,Packaging Praise
+The packaging was impressive and protected the item well,Positive,Packaging Praise
+Beautiful packaging everything was neatly arranged,Positive,Packaging Praise
+Product was packed with care and arrived safely,Positive,Packaging Praise
+Packaging quality is excellent product came undamaged,Positive,Packaging Praise
+Highly recommended to others would buy again,Positive,Overall Positive Experience
+Great overall experience with this purchase,Positive,Overall Positive Experience
+Would definitely buy this product again,Positive,Overall Positive Experience
+Completely satisfied with my purchase,Positive,Overall Positive Experience
+Amazing product and great experience overall,Positive,Overall Positive Experience
+Five stars for this product and the entire service,Positive,Overall Positive Experience
+Very pleased with everything about this purchase,Positive,Overall Positive Experience
+Best purchase I have made in a long time,Positive,Overall Positive Experience
+Overall a fantastic purchase highly recommend,Positive,Overall Positive Experience
+Brilliant experience from order to delivery,Positive,Overall Positive Experience
+Average experience could be improved,Neutral,Neutral
+Not fully satisfied but overall decent product,Neutral,Neutral
+Product is okay nothing special about it,Neutral,Neutral
+Mediocre quality but acceptable for the price,Neutral,Neutral
+It is an average product neither good nor bad,Neutral,Neutral
+Somewhat satisfied not completely happy though,Neutral,Neutral
+Product is fine for basic use nothing extraordinary,Neutral,Neutral
+Somewhat happy with the purchase overall,Neutral,Neutral
+Not bad not great just an average experience,Neutral,Neutral
+Product quality is broken defective not working,Negative,Product Quality Issue
+Completely broken item received quality is awful,Negative,Product Quality Issue
+Product is damaged and not working properly,Negative,Product Quality Issue
+Expired product sent to me very unhappy,Negative,Expiry Issue
+Got expired item expiry date already passed,Negative,Expiry Issue
+Wrong product received this is incorrect item,Negative,Wrong Item
+Totally wrong item delivered not what I ordered,Negative,Wrong Item
+Bad packaging torn box item damaged inside,Negative,Packaging Issue
+Package was ripped and product inside was broken,Negative,Packaging Issue
+Changed mind do not want this product anymore,Negative,Customer Preference
+No longer want this decided not to keep it,Negative,Customer Preference
+Very unhappy and not satisfied with purchase,Negative,Other
+Completely disappointed will not buy again,Negative,Other
+Amazing product so happy with the purchase,Positive,Product Appreciation
+Product is superb quality is absolutely top notch,Positive,Product Appreciation
+Very impressed with the product quality and build,Positive,Product Appreciation
+Love this product it works perfectly as expected,Positive,Product Appreciation
+Great quality product highly impressed,Positive,Product Appreciation
+Very fast delivery and excellent smooth service,Positive,Service Satisfaction
+Service was outstanding delivery ahead of schedule,Positive,Service Satisfaction
+Arrived quickly and service was brilliant throughout,Positive,Service Satisfaction
+Packaging was beautiful and product arrived safely,Positive,Packaging Praise
+Item was packaged with great care arrived undamaged,Positive,Packaging Praise
+Perfectly packed product beautiful presentation,Positive,Packaging Praise
+Best purchase ever completely satisfied highly recommend,Positive,Overall Positive Experience
+Absolutely wonderful overall experience definitely recommend,Positive,Overall Positive Experience
+Thrilled with the product and the entire buying experience,Positive,Overall Positive Experience
